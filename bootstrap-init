@@ -25,6 +25,15 @@ if [[ $? -eq 0 ]]; then
     echo "Not running zsh, installing..."
 fi
 
+update_repo(){
+    echo "Updating Project files..."
+    echo "Updating repository..."
+
+    exe git pull origin master
+    exe git submodule update --init --recursive
+    exe git submodule update --recursive
+}
+
 install_zsh() {
     read -p "Install zsh? (y/n) " -n 1;
     echo "";
@@ -32,7 +41,7 @@ install_zsh() {
         echo "Installing zsh and oh-my-zsh ..."
 
         # Install zsh
-        sudo apt-get install zsh -y
+        exe sudo apt-get install zsh -y
 
         # Install unattended oh-my-zsh - https://github.com/ohmyzsh/ohmyzsh#unattended-install
         if [[ ! -d $HOME/.oh-my-zsh ]]; then
@@ -55,8 +64,6 @@ install_zsh() {
             echo "Updating DEAFULT_USER in .zshrc ..."
             echo "export DEFAULT_USER=`whoami`" >> $HOME/.zshrc
         fi
-
-        install_zplug
         
         # Theme is handled by zplug
         #zsh_theme dracula
@@ -64,7 +71,6 @@ install_zsh() {
         # This isn't necessary anymore with zplug
         #sed -i 's/\(^plugins=([^)]*\)/\1 zsh-autosuggestions zsh-syntax-highlighting/' $HOME/.zshrc
 
-        chmod -R g-w,o-w ~/.oh-my-zsh/custom/plugins/
     fi
 }
 
@@ -74,8 +80,11 @@ install_zplug() {
     
     #link $DOTFILES/apps/zplug/.zplug.zsh $HOME/.zplug.zsh
     echo "[ -f ~/.zplug.zsh ] && source ~/.zplug.zsh" >> $HOME/.zshrc
+
+    exe chmod -R g-w,o-w ~/.oh-my-zsh/custom/plugins/
 }
 
+update_repo
 install_zsh
 install_zplug
 
