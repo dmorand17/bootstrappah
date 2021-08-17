@@ -1,0 +1,16 @@
+# Building Image
+docker build --build-arg SHA=$(curl -s 'https://api.github.com/repos/dmorand17/bootstrappah/git/refs/heads/master' | jq -r '.object.sha') -t bootstrappah-test:latest .
+
+# Running dotfiles-tester
+docker run -it bootstrappah-test/bin/bash
+
+# Testing dotfiles
+cd bootstrappah
+./bootstrap.sh
+
+# Reload bash
+exec bash
+
+# Docker container/image cleanup
+docker rm $(docker ps -a -q)
+docker image prune
