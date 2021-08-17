@@ -2,9 +2,14 @@
 
 set -ou pipefail
 
-if [[ ! -f bootstrap-init]]; then
+if [[ ! -f bootstrap-init ]]; then
 	echo "Bootstrap must be run from bootstrappah directory ..."
 	exit 1
+fi
+
+if [[ "$EUID" -ne 0 ]]; then
+    echo "Please run with 'sudo'"
+    exit
 fi
 
 case "$OSTYPE" in
@@ -19,12 +24,6 @@ esac
 DOTFILES=$(pwd)
 exe() { echo "\$ $@" ; "$@" ; }
 
-# Is zsh my shell?
-echo $SHELL | grep zsh &>/dev/null
-if [[ $? -eq 0 ]]; then
-    echo "Not running zsh, installing..."
-fi
-
 update_repo(){
     echo "Updating Project files..."
     echo "Updating repository..."
@@ -35,43 +34,35 @@ update_repo(){
 }
 
 install_zsh() {
-    read -p "Install zsh? (y/n) " -n 1;
-    echo "";
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        echo "Installing zsh and oh-my-zsh ..."
+    echo "Installing zsh and oh-my-zsh ..."
 
-        # Install zsh
-        exe sudo apt-get install zsh -y
+    # Install zsh
+    exe sudo apt-get install zsh -y
 
-        # Install unattended oh-my-zsh - https://github.com/ohmyzsh/ohmyzsh#unattended-install
-        if [[ ! -d $HOME/.oh-my-zsh ]]; then
-            sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-        else
-            echo "oh-my-zsh already installed"
-        fi
-
-        # Change to zsh 
-        chsh -s $(which zsh)
-        if [[ $? -eq 0 ]]; then
-            echo "Unable to change default shell to 'zsh'.  Try again by running `chsh -s $(which zsh)` as sudo"
-        fi
-
-        # Launch zsh
-        zsh
-
-        # Updating DEFAULT_USER to suppress username from prompt
-        if ! grep -q DEFAULT_USER $HOME/.zshrc ; then	
-            echo "Updating DEAFULT_USER in .zshrc ..."
-            echo "export DEFAULT_USER=`whoami`" >> $HOME/.zshrc
-        fi
-        
-        # Theme is handled by zplug
-        #zsh_theme dracula
-        
-        # This isn't necessary anymore with zplug
-        #sed -i 's/\(^plugins=([^)]*\)/\1 zsh-autosuggestions zsh-syntax-highlighting/' $HOME/.zshrc
-
+    # Install unattended oh-my-zsh - https://github.com/ohmyzsh/ohmyzsh#unattended-install
+    if [[ ! -d $HOME/.oh-my-zsh ]]; then
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+    else
+        echo "oh-my-zsh already installed"
     fi
+
+    # Change to zsh
+    chsh -s $(which zsh)
+    if [[ $? -eq 0 ]]; then
+        echo "Unable to change default shell to 'zsh'.  Try again by running `chsh -s $(which zsh)` as sudo"
+    fi
+
+    # Updating DEFAULT_USER to suppress username from prompt
+    if ! grep -q DEFAULT_USER $HOME/.zshrc ; then
+        echo "Updating DEAFULT_USER in .zshrc ..."
+        echo "export DEFAULT_USER=`whoami`" >> $HOME/.zshrc
+    fi
+
+    # Theme is handled by zplug
+    #zsh_theme dracula
+
+    # This isn't necessary anymore with zplug
+    #sed -i 's/\(^plugins=([^)]*\)/\1 zsh-autosuggestions zsh-syntax-highlighting/' $HOME/.zshrc
 }
 
 install_zplug() {
@@ -85,7 +76,15 @@ install_zplug() {
 }
 
 update_repo
-install_zsh
-install_zplug
+
+# Is zsh my shell?
+echo $SHELL | grep zsh &>/dev/null
+if [[ $? -eq 0 ]]; then
+    echo "Not running zsh, installing..."
+    install_zsh
+    install_zplug
+else
+    echo "ZSH already installed"
+fi
 
 echo "Completed bootstrapping zsh!"
