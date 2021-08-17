@@ -7,84 +7,50 @@ if [[ ! -f bootstrap-init ]]; then
 	exit 1
 fi
 
-if [[ "$EUID" -ne 0 ]]; then
-    echo "Please run with 'sudo'"
-    exit
-fi
+echo "\nUpdating Project files...\n"
+exe git pull origin master
+exe git submodule update --init --recursive
+exe git submodule update --recursive
+
+exe() { echo "\$ $@" ; "$@" ; }
+
+bootstrap_linux() {
+    printf "\nSetting up Linux\n"
+    # Add Python repository
+    sudo add-apt-repository ppa:deadsnakes/ppa
+    sudo apt-get update -qq
+
+	sudo apt-get install -qq \
+		curl \
+		git \
+		vim \
+        fzf \
+		rsync \
+        python3.9 \
+		python3-pip \
+        ripgrep \
+		ssh
+
+    sudo pip3 install virtualenvwrapper -qq
+
+    # Install homebrew for linux
+    # /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+}
+
+bootstrap_mac(){
+    info "Setting up Mac"
+    exe sh brew.sh
+}
 
 case "$OSTYPE" in
   darwin*)
 	os='mac'
+    bootstrap_linux
     ;;
   *)
 	os='nix'
+    bootstrap_mac
     ;;
 esac
 
-DOTFILES=$(pwd)
-exe() { echo "\$ $@" ; "$@" ; }
-
-update_repo(){
-    echo "Updating Project files..."
-    echo "Updating repository..."
-
-    exe git pull origin master
-    exe git submodule update --init --recursive
-    exe git submodule update --recursive
-}
-
-install_zsh() {
-    echo "Installing zsh and oh-my-zsh ..."
-
-    # Install zsh
-    exe sudo apt-get install zsh -y
-
-    # Install unattended oh-my-zsh - https://github.com/ohmyzsh/ohmyzsh#unattended-install
-    if [[ ! -d $HOME/.oh-my-zsh ]]; then
-        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-    else
-        echo "oh-my-zsh already installed"
-    fi
-
-    # Change to zsh
-    chsh -s $(which zsh)
-    if [[ $? -eq 0 ]]; then
-        echo "Unable to change default shell to 'zsh'.  Try again by running `chsh -s $(which zsh)` as sudo"
-    fi
-
-    # Updating DEFAULT_USER to suppress username from prompt
-    if ! grep -q DEFAULT_USER $HOME/.zshrc ; then
-        echo "Updating DEAFULT_USER in .zshrc ..."
-        echo "export DEFAULT_USER=`whoami`" >> $HOME/.zshrc
-    fi
-
-    # Theme is handled by zplug
-    #zsh_theme dracula
-
-    # This isn't necessary anymore with zplug
-    #sed -i 's/\(^plugins=([^)]*\)/\1 zsh-autosuggestions zsh-syntax-highlighting/' $HOME/.zshrc
-}
-
-install_zplug() {
-    info "Installing zplug..." 
-    curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
-    
-    #link $DOTFILES/apps/zplug/.zplug.zsh $HOME/.zplug.zsh
-    echo "[ -f ~/.zplug.zsh ] && source ~/.zplug.zsh" >> $HOME/.zshrc
-
-    exe chmod -R g-w,o-w ~/.oh-my-zsh/custom/plugins/
-}
-
-update_repo
-
-# Is zsh my shell?
-echo $SHELL | grep zsh &>/dev/null
-if [[ $? -eq 0 ]]; then
-    echo "Not running zsh, installing..."
-    install_zsh
-    install_zplug
-else
-    echo "ZSH already installed"
-fi
-
-echo "Completed bootstrapping zsh!"
+echo "Initialization complete"
