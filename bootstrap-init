@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+set -ou pipefail
+
+if [[ ! -f bootstrap-init]]; then
+	echo "Bootstrap must be run from bootstrappah directory ..."
+	exit 1
+fi
+
+case "$OSTYPE" in
+  darwin*)
+	os='mac'
+    ;;
+  *)
+	os='nix'
+    ;;
+esac
+
+DOTFILES=$(pwd)
+exe() { echo "\$ $@" ; "$@" ; }
+
+# Is zsh my shell?
+echo $SHELL | grep zsh &>/dev/null
+if [[ $? -eq 0 ]]; then
+    echo "Not running zsh, installing..."
+fi
+
+install_zsh() {
+    read -p "Install zsh? (y/n) " -n 1;
+    echo "";
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo "Installing zsh and oh-my-zsh ..."
+
+        # Install zsh
+        sudo apt-get install zsh -y
+
+        # Install unattended oh-my-zsh - https://github.com/ohmyzsh/ohmyzsh#unattended-install
+        if [[ ! -d $HOME/.oh-my-zsh ]]; then
+            sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+        else
+            echo "oh-my-zsh already installed"
+        fi
+
+        # Change to zsh 
+        chsh -s $(which zsh)
+        if [[ $? -eq 0 ]]; then
+            echo "Unable to change default shell to 'zsh'.  Try again by running `chsh -s $(which zsh)` as sudo"
+        fi
+
+        # Launch zsh
+        zsh
+
+        # Updating DEFAULT_USER to suppress username from prompt
+        if ! grep -q DEFAULT_USER $HOME/.zshrc ; then	
+            echo "Updating DEAFULT_USER in .zshrc ..."
+            echo "export DEFAULT_USER=`whoami`" >> $HOME/.zshrc
+        fi
+
+        install_zplug
+        
+        # Theme is handled by zplug
+        #zsh_theme dracula
+        
+        # This isn't necessary anymore with zplug
+        #sed -i 's/\(^plugins=([^)]*\)/\1 zsh-autosuggestions zsh-syntax-highlighting/' $HOME/.zshrc
+
+        chmod -R g-w,o-w ~/.oh-my-zsh/custom/plugins/
+    fi
+}
+
+install_zplug() {
+    info "Installing zplug..." 
+    curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
+    
+    #link $DOTFILES/apps/zplug/.zplug.zsh $HOME/.zplug.zsh
+    echo "[ -f ~/.zplug.zsh ] && source ~/.zplug.zsh" >> $HOME/.zshrc
+}
+
+install_zsh
+install_zplug
+
+echo "Completed bootstrapping zsh!"
