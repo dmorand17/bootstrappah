@@ -40,4 +40,4 @@ ARG SHA=LATEST
 RUN SHA=${SHA} \
     git clone -b ${BRANCH} https://github.com/dmorand17/bootstrappah.git
 
-WORKDIR $HOME/dotfiles
+WORKDIR $HOME/bootstrappah
