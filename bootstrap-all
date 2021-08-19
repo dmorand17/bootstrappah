@@ -97,3 +97,5 @@ backup() {
     info "Backup complete..."
     exe_fancy find ~ -maxdepth 1 -name ".[^.]*" -type f -exec echo "backing up {} ..." \; -exec cp -rf "{}" $olddir \;
 }
+
+### Changed the file here!!
