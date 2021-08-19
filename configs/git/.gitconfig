@@ -58,7 +58,7 @@
 	dc = diff --cached
 	
 	cleanorig = clean -f *.orig
-    deleteall = !"git ls-files --delete | xargs -I {} git rm {}"
+    rmall = !"git ls-files --delete | xargs -I {} git rm {}"
     pullmaster = !"git checkout master && git pull && git checkout -"
 
     # Delete all branches marked [gone] on remote

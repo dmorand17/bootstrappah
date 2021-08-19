@@ -1,3 +1,6 @@
+.PHONY: build test clean update_submodules link function bootstrap upgrade bootstrap-min
+.DEFAULT_GOAL := help
+
 CONTAINERS := $(shell docker ps -aq --filter "label=type=dotfiles")
 
 # Defaults value to master branch
@@ -53,7 +56,6 @@ else
 	@echo "Must pass at least 1 FUNCTION value"
 endif
 
-.PHONY: build test clean update_submodules link function bootstrap upgrade bootstrap-min
 
 # Automatically build a help menu
 help:
@@ -61,4 +63,3 @@ help:
 	| sort \
 	| awk 'BEGIN {FS = ":.*?## "; printf "\033[31m\nHelp Commands\033[0m\n--------------------------------\n"}; {printf "\033[32m%-22s\033[0m %s\n", $$1, $$2}'
 
-.DEFAULT_GOAL := help
