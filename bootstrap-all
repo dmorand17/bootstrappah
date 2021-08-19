@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if [[ ! -f bootstrap-all ]]; then
+	echo "Bootstrap must be run from dotfiles directory ..."
+	exit 1
+fi
+
+if [[ "$EUID" -ne 0 ]]; then 
+    echo "Please run with 'sudo'"
+    exit
+fi
+
+PROJ_DIR=$(pwd)
+
+bootstrap-init
+bootstrap-zsh
+bootstrap-xxx
+
+exe() { echo "\$ $@" ; "$@" ; }
+
+link() {
+    info "Linking $1 -> $2..."
+    exe ln -fs $1 $2
+}
+
+nerdfont_robotomono() {
+    info "Downloading RobotoMono Nerd Fonts..."
+    exe_fancy curl -LO https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/RobotoMono.zip
+}
+
+link_shell() {
+    printf "\nLinking files\n"
+    #find ./config -type f | xargs -I{} link "{}" $HOME
+    shopt -s dotglob
+    for file in configs/dotfiles*; do
+        filename=$(basename $file)
+        link "$PROJ_DIR/$file" "$HOME/$filename"
+    done
+}
+
+configure_ssh() {
+    printf "\nConfiguring SSH...\n"
+    if [[ ! -d $HOME/.ssh ]]; then
+        mkdir $HOME/.ssh
+    fi
+
+    if [[ ! -f $HOME/.ssh/authorized_keys ]]; then
+        touch $HOME/.ssh/authorized_keys
+    fi
+
+    chmod 700 ~/.ssh
+    exe_fancy chmod 600 ~/.ssh/authorized_keys
+}
+
+configure_vim() {
+    printf "\nInstalling vim-plug...\n"
+    if [[ ! -f $HOME/.vim/autoload/plug.vim ]]; then
+        exe_fancy curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
+        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+    else
+        info "already installed"
+    fi
+}
+
+install_starship() {
+    # Install starship
+    printf "\nInstalling starship...\n"
+    exe curl -fsSL https://starship.rs/install.sh | bash
+
+    cp .starship.toml $HOME/.config
+    # Ignore this until starship git prompt speeds up
+    echo 'eval "$(starship init zsh)"' >> ~/.zshrc
+}
+
+install_powerline() {
+    info "Installing powerline-fonts ..."
+    pushd plugins/powerline-fonts
+    exe ./install.sh
+    popd
+}
+
+backup() {
+    info "Backing up dotfiles..."
+    # Backup the current dotfiles
+    DATE=$(date +"%Y%m%d-%H%M")
+    olddir=$HOME/dotfiles-$DATE.old
+    info "re-creating backup directory [$olddir]"
+    if [[ -d "$olddir" ]]; then
+        rm -rf $olddir
+        mkdir -p $olddir
+    else
+        mkdir -p $olddir
+    fi
+
+    info "Backup complete..."
+    exe_fancy find ~ -maxdepth 1 -name ".[^.]*" -type f -exec echo "backing up {} ..." \; -exec cp -rf "{}" $olddir \;
+}

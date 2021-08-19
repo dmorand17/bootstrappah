@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+
+set -ou pipefail
+
+if [[ ! -f bootstrap-init ]]; then
+	echo "Bootstrap must be run from bootstrappah directory ..."
+	exit 1
+fi
+
+if [[ "$EUID" -ne 0 ]]; then 
+    echo "Please run with 'sudo'"
+    exit
+fi
+
+PROJ_DIR=$(pwd)
+exe() { echo "\$ $@" ; "$@" ; }
+
+install_zsh() {
+    printf "\nInstalling zsh and oh-my-zsh ...\n"
+
+    # Install zsh
+    exe sudo apt-get install zsh -y
+
+    # Install unattended oh-my-zsh - https://github.com/ohmyzsh/ohmyzsh#unattended-install
+    if [[ ! -d $HOME/.oh-my-zsh ]]; then
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+    else
+        echo "oh-my-zsh already installed"
+    fi
+
+    # Change to zsh 
+    chsh -s $(which zsh)
+    if [[ ! $? -eq 0 ]]; then
+        echo "Unable to change default shell to 'zsh'.  Try again by running `chsh -s $(which zsh)` as sudo"
+    fi
+
+    # Updating DEFAULT_USER to suppress username from prompt
+    if ! grep -q DEFAULT_USER $HOME/.zshrc ; then	
+        echo "Updating DEAFULT_USER in .zshrc ..."
+        echo "export DEFAULT_USER=`whoami`" >> $HOME/.zshrc
+    fi
+    
+    # Theme is handled by zplug
+    #zsh_theme dracula
+    
+    # This isn't necessary anymore with zplug
+    #sed -i 's/\(^plugins=([^)]*\)/\1 zsh-autosuggestions zsh-syntax-highlighting/' $HOME/.zshrc
+}
+
+install_zplug() {
+    printf "\nInstalling zplug ...\n" 
+    curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
+    
+    link $PROJ_DIR/configs/apps/zplug/.zplug.zsh $HOME/.zplug.zsh
+    echo "[ -f ~/.zplug.zsh ] && source ~/.zplug.zsh" >> $HOME/.zshrc
+
+    chmod -R g-w,o-w ~/.oh-my-zsh/custom/plugins/
+}
+
+# Is zsh my shell?
+echo $SHELL | grep zsh &>/dev/null
+if [[ $? -eq 0 ]]; then
+    install_zsh
+    install_zplug
+else
+    echo "ZSH already installed"
+fi
+
+echo "Completed bootstrapping zsh"
+echo "Run 'exec zsh' to start your new shell!"
