@@ -7,6 +7,11 @@ if [[ ! -f bootstrap-init ]]; then
 	exit 1
 fi
 
+if [[ "$EUID" -ne 0 ]]; then
+    echo "Please run with 'sudo'"
+    exit
+fi
+
 echo "\nUpdating Project files...\n"
 exe git pull origin master
 exe git submodule update --init --recursive
@@ -17,10 +22,10 @@ exe() { echo "\$ $@" ; "$@" ; }
 bootstrap_linux() {
     printf "\nSetting up Linux\n"
     # Add Python repository
-    sudo add-apt-repository ppa:deadsnakes/ppa
-    sudo apt-get update -qq
+    add-apt-repository ppa:deadsnakes/ppa
+    apt-get update -qq
 
-	sudo apt-get install -qq \
+	apt-get install -qq \
 		curl \
 		git \
 		vim \
@@ -31,7 +36,7 @@ bootstrap_linux() {
         ripgrep \
 		ssh
 
-    sudo pip3 install virtualenvwrapper -qq
+    pip3 install virtualenvwrapper -qq
 
     # Install homebrew for linux
     # /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"

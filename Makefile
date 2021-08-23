@@ -1,12 +1,12 @@
-.PHONY: build test clean update_submodules link function bootstrap upgrade bootstrap-min
+.PHONY: build test clean update_submodules upgrade bootstrap-all bootstrap-min bootstrap-link
 .DEFAULT_GOAL := help
 
 CONTAINERS := $(shell docker ps -aq --filter "label=type=dotfiles")
-
 # Defaults value to master branch
 BRANCH ?= master
-
 SHA := $(shell curl -s 'https://api.github.com/repos/dmorand17/bootstrappah/git/refs/heads/$(BRANCH)' | jq -r '.object.sha')
+DATE := $(shell date +"%Y%m%d-%H%M")
+backup_dir := $(wildcard ${HOME}/bootstrap-${DATE}.old)
 
 build: ## Build dotfiles container. [BRANCH]=branch to build (defaults to 'master')
 	@echo "gitsha1 -> $(SHA)"
@@ -31,31 +31,31 @@ update_submodules: ## Update submodules
 	@echo "Updating submodules..."
 	git submodule update --recursive
 
-link: ## TODO: Links files for shell
-	@echo "Linking dotfiles..."
-
 upgrade: ## Update the local repository, and run any updates
 	@echo "Updating..."
 	zplug update
 	update_submodules
 
-bootstrap: ## Bootstrap system (install/configure apps, link dotfiles)
+bootstrap-all: ## Bootstrap system (install/configure apps, link dotfiles)
 	@echo "Bootstrapping system..."
-	./bootstrap
+	sudo ./bootstrap-init
+	sudo ./bootstrap-zsh
 
 bootstrap-min: ## Bootstrap minimum necessary (vim, profile, aliases)
 	@echo "Bootstrapping minimum configuration..."
 	ln -fs shell/.aliases ${HOME}/.aliases
 	ln -fs shell/.profile ${HOME}/.profile
 
-function: ## TODO Perform function(s) defined from bootstrap script
-	@echo "Performing function(s)..."
-ifneq ($(FUNCTION),)
-	@for f in $(FUNCTION); do echo " > [$$f]"; done
-else
-	@echo "Must pass at least 1 FUNCTION value"
-endif
+bootstrap-link:
+	@echo "Linking files"
+	$(foreach file, $(wildcard $(CURDIR)/configs/dotfiles/*), echo $(file); ln -fs $(file) $(HOME))
 
+bootstrap-backup: | $(backup_dir)
+	@echo "Continuation regardless of existence of $(backup_dir)"
+
+$(backup_dir):
+	@echo "Folder $(backup_dir) does not exist"
+	mkdir $@
 
 # Automatically build a help menu
 help:

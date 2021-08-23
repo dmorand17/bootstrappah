@@ -16,7 +16,8 @@ RUN apt-get update -y && apt-get install -y \
     jq \
 	sudo \
     software-properties-common \
-    locales
+    locales \
+    make
 
 # Fix issues related to locale
 RUN locale-gen en_US.UTF-8

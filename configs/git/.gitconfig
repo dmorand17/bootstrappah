@@ -93,7 +93,8 @@
 	
 	# Don't add crlf
 	autocrlf = false
-	editor = vim
+    # editor = vim
+    editor = code --wait
 [color]
 
 	# Use colors in Git commands that are capable of colored output when
@@ -129,6 +130,10 @@
 
 	# Detect copies as well as renames
 	renames = copies
+    tool = default-difftool
+
+[difftool "default-difftool"]
+    cmd = code --wait --diff $LOCAL $REMOTE
 
 [diff "bin"]
 
@@ -144,6 +149,10 @@
 
 	# Include summaries of merged commits in newly created merge commit messages
 	log = true
+    tool = code
+
+[mergetool "code"]
+    cmd = code --wait $MERGED
 
 [push]
 
@@ -172,3 +181,8 @@
 [oh-my-zsh]
     hide-dirty = 1
     hide-status = 0
+[branch]
+	autosetuprebase = always
+[user]
+	name = Doug Morand
+	email = doug@commure.com
