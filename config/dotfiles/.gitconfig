@@ -183,6 +183,3 @@
     hide-status = 0
 [branch]
 	autosetuprebase = always
-[user]
-	name = Doug Morand
-	email = doug@commure.com

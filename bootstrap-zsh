@@ -7,13 +7,14 @@ if [[ ! -f bootstrap-init ]]; then
 	exit 1
 fi
 
+exe() { echo "\$ $@" ; "$@" ; }
+
 if [[ "$EUID" -ne 0 ]]; then
     echo "Please run with 'sudo'"
     exit
 fi
 
 PROJ_DIR=$(pwd)
-exe() { echo "\$ $@" ; "$@" ; }
 
 install_zsh() {
     printf "\nInstalling zsh and oh-my-zsh ...\n"
@@ -51,7 +52,7 @@ install_zplug() {
     printf "\nInstalling zplug ...\n"
     curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
 
-    link $PROJ_DIR/configs/apps/zplug/.zplug.zsh $HOME/.zplug.zsh
+    link $PROJ_DIR/config/zplug/.zplug.zsh $HOME/.zplug.zsh
     echo "[ -f ~/.zplug.zsh ] && source ~/.zplug.zsh" >> $HOME/.zshrc
 
     chmod -R g-w,o-w ~/.oh-my-zsh/custom/plugins/
@@ -59,7 +60,7 @@ install_zplug() {
 
 # Is zsh my shell?
 echo $SHELL | grep zsh &>/dev/null
-if [[ $? -eq 0 ]]; then
+if [[ $? -ne 0 ]]; then
     install_zsh
     install_zplug
 else

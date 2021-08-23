@@ -97,6 +97,13 @@ git config --global user.email "$GIT_AUTHOR_EMAIL
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
+**Starship**
+```bash
+curl -fsSL https://starship.rs/install.sh | bash
+cp .starship.toml $HOME/.config
+echo 'eval "$(starship init zsh)"' >> ~/.zshrc
+```
+
 ## Running Tests
 
 A docker image can be created to be used to test.

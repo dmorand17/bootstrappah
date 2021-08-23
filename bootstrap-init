@@ -7,17 +7,17 @@ if [[ ! -f bootstrap-init ]]; then
 	exit 1
 fi
 
+exe() { echo "\$ $@" ; "$@" ; }
+
 if [[ "$EUID" -ne 0 ]]; then
     echo "Please run with 'sudo'"
     exit
 fi
 
-echo "\nUpdating Project files...\n"
+printf "\nUpdating Project files...\n"
 exe git pull origin master
 exe git submodule update --init --recursive
 exe git submodule update --recursive
-
-exe() { echo "\$ $@" ; "$@" ; }
 
 bootstrap_linux() {
     printf "\nSetting up Linux\n"
@@ -37,25 +37,7 @@ bootstrap_linux() {
 		ssh
 
     pip3 install virtualenvwrapper -qq
-
-    # Install homebrew for linux
-    # /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 }
 
-bootstrap_mac(){
-    info "Setting up Mac"
-    exe sh brew.sh
-}
-
-case "$OSTYPE" in
-  darwin*)
-	os='mac'
-    bootstrap_linux
-    ;;
-  *)
-	os='nix'
-    bootstrap_mac
-    ;;
-esac
-
+bootstrap_linux
 echo "Initialization complete"
