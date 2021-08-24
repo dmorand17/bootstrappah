@@ -82,14 +82,14 @@ $(HOME)/.zshrc: $(CURDIR)/bootstrap-zsh
 	touch $(HOME)/.zshrc
 
 # HOMEFILES contains all files from config/dotfiles (e.g. .aliases, .functions, .inputrc)
-HOMEFILES := $(shell ls -A config/dotfiles)
+HOMEFILES := $(shell ls -A config/dotfiles) 
 # DOTFILES is a list of resulting linked file (e.g. $(HOME)/.aliases)
 DOTFILES := $(addprefix $(HOME)/,$(HOMEFILES))
 
 link: | $(DOTFILES) ## Link all files from config/dotfiles
-# This will link all of our dotfiles into our home directory.
+# This will link all of our dotfiles into our home directory.  
 # $(CURDIR)/config/dotfiles/$(notdir $@)
-# 	notdir $@ is grabbing just the filename (not directory) and appending it to a different path (e.g. $(CURDIR)/config/dotfiles)
+# 	notdir $@ is grabbing just the filename (not directory) and appending it to a different path (e.g. $(CURDIR)/config/dotfiles) 
 $(DOTFILES):
 	ln -sv "$(CURDIR)/config/dotfiles/$(notdir $@)" $@
 
@@ -119,7 +119,7 @@ else
 endif
 
 bootstrap-robotomono: ${HOME}/RobotoMono.zip
-${HOME}/RobotoMono.zip:
+${HOME}/RobotoMono.zip: 
 	@echo "Downloading RobotMono v.2.1.0..."
 	@curl -L https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/RobotoMono.zip --output ${HOME}/RobotoMono.zip
 
@@ -130,7 +130,7 @@ bootstrap-homebrew: ## install linux homebrew (optional)
 	@if [ -n `which brew` ]; then \
 		curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh | bash ; \
 		echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/dotuser/.profile ; \
-	eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" ; \
+    	eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" ; \
 	fi
 
 all: bootstrap-backup init zsh | bootstrap-ssh bootstrap-vim bootstrap-link bootstrap-robotomono bootstrap-starship ## Bootstrap system (install/configure apps, link dotfiles)
