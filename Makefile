@@ -20,7 +20,7 @@ docker-build: ## Build dotfiles container. [BRANCH]=branch to build (defaults to
 	@echo "Current build: $(RECENT_BUILD_BRANCH_SHA)"
 	@echo "Requested build: $(BRANCH_SHA)"
 ifeq ($(SHA),null)
-	$(error SHA is not set.  Please ensure that [$(BRANCH)] exists, and has been pushed to remote)
+	$(error SHA is not set.  Please ensure that [$(BRANCH)] exists, and has been pushed to remote.  Other failures could be related to API Rate limit)
 endif
 ifneq ($(RECENT_BUILD_BRANCH_SHA),$(BRANCH_SHA))
 	docker build --file test/Dockerfile --build-arg BRANCH=$(BRANCH) --build-arg SHA=$(SHA) -t bootstrappah:latest .
@@ -68,11 +68,12 @@ bootstrap-min: ## Bootstrap minimum necessary - profile, aliases
 	ln -fs config/dotfiles/.aliases ${HOME}/.aliases
 	ln -fs config/dotfiles/.profile ${HOME}/.profile
 
-init: $(CURDIR)/bootstrap-init ## Initialize linux system (install git, ssh, fzf, etc)
-$(CURDIR)/bootstrap-init: $(CURDIR)/.bootstrap/init
+# Runs init job using order-only prequisite
+# Once job is run once the .bootstrap/init file will be created and init job will no longer run
+# Re-trigger by removing .bootsrap/init
+init: | $(CURDIR)/.bootstrap/init ## Initialize linux system (install git, ssh, fzf, etc)
+$(CURDIR)/.bootstrap/init:
 	sudo ./bootstrap-init
-	# Update bootstrap-init to stop target from re-triggering
-	# touch $(CURDIR)/.bootstrap/init to retrigger
 	touch $(CURDIR)/bootstrap-init
 
 zsh: $(HOME)/.zshrc ## Install ZSH and oh-my-zsh
