@@ -7,7 +7,7 @@ CONTAINERS = $(shell which docker && docker ps -aq --filter "label=type=dotfiles
 BRANCH ?= master
 SHA := $(shell curl -s 'https://api.github.com/repos/dmorand17/bootstrappah/git/refs/heads/$(BRANCH)' | jq -r '.object.sha')
 DATE = $(shell date +"%Y%m%d")
-backup_dir = ${HOME}/config-${DATE}.old
+backup_dir = ${HOME}/home-${DATE}.old
 
 #### START DOCKER SECTION
 RECENT_BUILD_BRANCH_SHA = $(shell cat .bootstrap/docker 2>/dev/null)
@@ -77,6 +77,8 @@ $(BOOTSTRAP_CFG_DIR)/init:
 zsh: $(HOME)/.zshrc ## Install ZSH and oh-my-zsh
 $(HOME)/.zshrc: $(CURDIR)/bootstrap-zsh
 	sudo ./bootstrap-zsh
+	## Run it again to install zplug
+	sudo ./bootstrap-zsh
 	touch $(HOME)/.zshrc
 
 # HOMEFILES contains all files from config/dotfiles (e.g. .aliases, .functions, .inputrc)
@@ -84,11 +86,18 @@ HOMEFILES := $(shell ls -A config/dotfiles)
 # DOTFILES is a list of resulting linked file (e.g. $(HOME)/.aliases)
 DOTFILES := $(addprefix $(HOME)/,$(HOMEFILES))
 
+profile-link: link | .profile.old
+.profile.old:
+	@echo "Moving ${HOME}.profile to ${HOME}.profile.old"
+	@mv ${HOME}/.profile ${HOME}/.profile.old
+
 link: | $(DOTFILES) ## Link all files from config/dotfiles
 # This will link all of our dotfiles into our home directory.  
+# This will NOT link any existing files
 # $(CURDIR)/config/dotfiles/$(notdir $@)
 # 	notdir $@ is grabbing just the filename (not directory) and appending it to a different path (e.g. $(CURDIR)/config/dotfiles) 
 $(DOTFILES):
+	@echo "Linking $< to $@"
 	@ln -sv "$(CURDIR)/config/dotfiles/$(notdir $@)" $@
 
 bootstrap-ssh: ## Bootstrapping SSH
@@ -132,7 +141,7 @@ bootstrap-homebrew: ## install linux homebrew (optional)
     	eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" ; \
 	fi
 
-all: bootstrap-backup init zsh | bootstrap-ssh bootstrap-vim link bootstrap-robotomono bootstrap-starship ## Bootstrap system (install/configure apps, link dotfiles)
+all: bootstrap-backup init zsh profile-link | bootstrap-ssh bootstrap-vim bootstrap-robotomono bootstrap-starship ## Bootstrap system (install/configure apps, link dotfiles)
 	@echo "Bootstrapping system completed!"
 
 # Automatically build a help menu
