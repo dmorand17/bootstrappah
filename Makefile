@@ -10,7 +10,7 @@ DATE = $(shell date +"%Y%m%d")
 backup_dir = ${HOME}/config-${DATE}.old
 
 #### START DOCKER SECTION
-RECENT_BUILD_BRANCH_SHA := $(shell cat .bootstrap/docker)
+RECENT_BUILD_BRANCH_SHA = $(shell cat .bootstrap/docker)
 BRANCH_SHA = $(BRANCH):$(SHA)
 
 docker-test: docker-build ## Test dotfiles using docker
@@ -72,7 +72,6 @@ bootstrap-min: ## Bootstrap minimum necessary - profile, aliases
 init: | $(CURDIR)/.bootstrap/init ## Initialize linux system (install git, ssh, fzf, etc)
 $(CURDIR)/.bootstrap/init:
 	sudo ./bootstrap-init
-	touch $(CURDIR)/bootstrap-init
 
 zsh: $(HOME)/.zshrc ## Install ZSH and oh-my-zsh
 $(HOME)/.zshrc: $(CURDIR)/bootstrap-zsh
@@ -131,7 +130,7 @@ bootstrap-homebrew: ## install linux homebrew (optional)
     	eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" ; \
 	fi
 
-all: bootstrap-backup init zsh | bootstrap-ssh bootstrap-vim bootstrap-link bootstrap-robotomono bootstrap-starship ## Bootstrap system (install/configure apps, link dotfiles)
+all: bootstrap-backup init zsh | bootstrap-ssh bootstrap-vim link bootstrap-robotomono bootstrap-starship ## Bootstrap system (install/configure apps, link dotfiles)
 	@echo "Bootstrapping system completed!"
 
 # Automatically build a help menu
