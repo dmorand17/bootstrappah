@@ -76,9 +76,7 @@ $(BOOTSTRAP_CFG_DIR)/init:
 
 zsh: $(HOME)/.zshrc ## Install ZSH and oh-my-zsh
 $(HOME)/.zshrc: $(CURDIR)/bootstrap-zsh
-	sudo ./bootstrap-zsh
-	## Run it again to install zplug
-	sudo ./bootstrap-zsh
+	./bootstrap-zsh
 	touch $(HOME)/.zshrc
 
 # HOMEFILES contains all files from config/dotfiles (e.g. .aliases, .functions, .inputrc)
@@ -86,8 +84,9 @@ HOMEFILES := $(shell ls -A config/dotfiles)
 # DOTFILES is a list of resulting linked file (e.g. $(HOME)/.aliases)
 DOTFILES := $(addprefix $(HOME)/,$(HOMEFILES))
 
-profile-link: link | .profile.old
-.profile.old:
+# This ensures that the .profile file will be renamed prior to any links
+profile-link: $(HOME)/.profile.old link
+$(HOME)/.profile.old: $(HOME)/.profile
 	@echo "Moving ${HOME}.profile to ${HOME}.profile.old"
 	@mv ${HOME}/.profile ${HOME}/.profile.old
 
@@ -97,7 +96,6 @@ link: | $(DOTFILES) ## Link all files from config/dotfiles
 # $(CURDIR)/config/dotfiles/$(notdir $@)
 # 	notdir $@ is grabbing just the filename (not directory) and appending it to a different path (e.g. $(CURDIR)/config/dotfiles) 
 $(DOTFILES):
-	@echo "Linking $< to $@"
 	@ln -sv "$(CURDIR)/config/dotfiles/$(notdir $@)" $@
 
 bootstrap-ssh: ## Bootstrapping SSH

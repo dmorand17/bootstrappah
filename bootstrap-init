@@ -30,6 +30,7 @@ bootstrap_linux() {
 		git \
 		vim \
         fzf \
+        zsh \
 		rsync \
         python3.9 \
 		python3-pip \

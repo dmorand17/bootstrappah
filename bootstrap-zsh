@@ -9,18 +9,10 @@ fi
 
 exe() { echo "\$ $@" ; "$@" ; }
 
-if [[ "$EUID" -ne 0 ]]; then
-    echo "Please run with 'sudo'"
-    exit
-fi
-
 PROJ_DIR=$(pwd)
 
 install_zsh() {
-    printf "\nInstalling zsh and oh-my-zsh ...\n"
-
-    # Install zsh
-    exe apt-get install zsh -y
+    printf "\nInstalling oh-my-zsh ...\n"
 
     # Install unattended oh-my-zsh - https://github.com/ohmyzsh/ohmyzsh#unattended-install
     if [[ ! -d $HOME/.oh-my-zsh ]]; then
@@ -55,7 +47,10 @@ install_zplug() {
 # Is zsh my shell?
 #echo $SHELL | grep zsh &>/dev/null
 install_zsh
-install_zplug
+if [[ ! -f $HOME/.zplug.zsh ]]; then
+    install_zplug
+fi
 
 echo "Completed bootstrapping zsh"
 echo "Run 'exec zsh' to start your new shell!"
+echo "Change shell using: sudo chsh -s $(which zsh)"
