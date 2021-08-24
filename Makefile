@@ -1,23 +1,36 @@
 .PHONY: docker-build docker-test docker-clean update_submodules upgrade
 .DEFAULT_GOAL := help
-BOOTSTRAP := $(CURDIR).bootstrap
+BOOTSTRAP_CFG_DIR = $(CURDIR)/.bootstrap
 
-CONTAINERS := $(shell which docker && docker ps -aq --filter "label=type=dotfiles")
+CONTAINERS = $(shell which docker && docker ps -aq --filter "label=type=dotfiles")
 # Defaults value to master branch
 BRANCH ?= master
 SHA := $(shell curl -s 'https://api.github.com/repos/dmorand17/bootstrappah/git/refs/heads/$(BRANCH)' | jq -r '.object.sha')
-DATE := $(shell date +"%Y%m%d")
-backup_dir := ${HOME}/config-${DATE}.old
+DATE = $(shell date +"%Y%m%d")
+backup_dir = ${HOME}/config-${DATE}.old
 
-docker-build: ## Build dotfiles container. [BRANCH]=branch to build (defaults to 'master')
-	@echo "gitsha1 -> $(SHA)"
-ifeq ($(SHA),null)
-	$(error SHA is not set.  Please ensure that [$(BRANCH)] exists)
-endif
-	docker build --file test/Dockerfile --build-arg BRANCH=$(BRANCH) --build-arg SHA=$(SHA) -t bootstrappah:latest .
+#### START DOCKER SECTION
+RECENT_BUILD_BRANCH_SHA = $(file < .bootstrap/docker)
+BRANCH_SHA = $(BRANCH):$(SHA)
 
 docker-test: docker-build ## Test dotfiles using docker
 	docker run -e LANG="en_US.UTF-8" -e LANGUAGE="en_US.UTF-8" --label type=dotfiles -it bootstrappah /bin/bash
+
+docker-build: ## Build dotfiles container. [BRANCH]=branch to build (defaults to 'master')
+	@echo "Current build: $(RECENT_BUILD_BRANCH_SHA)"
+	@echo "Requested build: $(BRANCH_SHA)"
+ifeq ($(SHA),null)
+	$(error SHA is not set.  Please ensure that [$(BRANCH)] exists, and has been pushed to remote)
+endif
+ifneq ($(RECENT_BUILD_BRANCH_SHA),$(BRANCH_SHA))
+	docker build --file test/Dockerfile --build-arg BRANCH=$(BRANCH) --build-arg SHA=$(SHA) -t bootstrappah:latest .
+	@echo "Writing $(BRANCH_SHA) to $(CURDIR)/.bootstrap/docker"
+	@echo "$(BRANCH_SHA)" > $(CURDIR)/.bootstrap/docker
+else
+	@echo "Docker does not need to be built"
+	@echo "Most recent build: $(RECENT_BUILD_BRANCH_SHA)"
+	@echo "Requested: $(BRANCH_SHA)"
+endif
 
 docker-clean: ## Clean dotfiles docker containers/images
 ifneq ($(CONTAINERS),)
@@ -27,6 +40,7 @@ ifneq ($(CONTAINERS),)
 else
 	@echo "Nothing to clean..."
 endif
+#### END DOCKER SECTION
 
 update-submodules: ## Update submodules
 	@echo "Updating submodules..."
@@ -78,7 +92,7 @@ link: | $(DOTFILES) ## Link all files from config/dotfiles
 $(DOTFILES):
 	ln -sv "$(CURDIR)/config/dotfiles/$(notdir $@)" $@
 
-bootstrap-ssh: ## Bootstrapping SSH...
+bootstrap-ssh: ## Bootstrapping SSH
 	@printf "\033[32mBootstrapping ssh for github...\033[0m\n"
 ifeq ("$(wildcard ${HOME}/.ssh)","")
 	@mkdir $(HOME)/.ssh && chmod 700 ~/.ssh
