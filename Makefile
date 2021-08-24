@@ -10,7 +10,7 @@ DATE = $(shell date +"%Y%m%d")
 backup_dir = ${HOME}/config-${DATE}.old
 
 #### START DOCKER SECTION
-RECENT_BUILD_BRANCH_SHA = $(file < .bootstrap/docker)
+RECENT_BUILD_BRANCH_SHA := $(shell cat .bootstrap/docker)
 BRANCH_SHA = $(BRANCH):$(SHA)
 
 docker-test: docker-build ## Test dotfiles using docker
@@ -28,8 +28,6 @@ ifneq ($(RECENT_BUILD_BRANCH_SHA),$(BRANCH_SHA))
 	@echo "$(BRANCH_SHA)" > $(CURDIR)/.bootstrap/docker
 else
 	@echo "Docker does not need to be built"
-	@echo "Most recent build: $(RECENT_BUILD_BRANCH_SHA)"
-	@echo "Requested: $(BRANCH_SHA)"
 endif
 
 docker-clean: ## Clean dotfiles docker containers/images
