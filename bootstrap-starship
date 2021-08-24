@@ -13,6 +13,9 @@ exe() { echo "\$ $@" ; "$@" ; }
 if [[ ! $(command -v starship) ]]; then
     echo "Installing starship..."
     curl -fsSL https://starship.rs/install.sh | bash
+    if [[ ! -d $HOME/.config ]]; then
+        mkdir $HOME/.config
+    fi
     cp config/starship/starship.toml $HOME/.config
     echo 'eval "$(starship init zsh)"' >> ~/.zshrc
     echo "Installation complete!"

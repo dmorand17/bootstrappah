@@ -10,7 +10,7 @@ DATE = $(shell date +"%Y%m%d")
 backup_dir = ${HOME}/config-${DATE}.old
 
 #### START DOCKER SECTION
-RECENT_BUILD_BRANCH_SHA = $(shell cat .bootstrap/docker)
+RECENT_BUILD_BRANCH_SHA = $(shell cat .bootstrap/docker 2>/dev/null)
 BRANCH_SHA = $(BRANCH):$(SHA)
 
 docker-test: docker-build ## Test dotfiles using docker
@@ -69,9 +69,10 @@ bootstrap-min: ## Bootstrap minimum necessary - profile, aliases
 # Runs init job using order-only prequisite
 # Once job is run once the .bootstrap/init file will be created and init job will no longer run
 # Re-trigger by removing .bootsrap/init
-init: | $(CURDIR)/.bootstrap/init ## Initialize linux system (install git, ssh, fzf, etc)
-$(CURDIR)/.bootstrap/init:
+init: | $(BOOTSTRAP_CFG_DIR)/init ## Initialize linux system (install git, ssh, fzf, etc)
+$(BOOTSTRAP_CFG_DIR)/init:
 	sudo ./bootstrap-init
+	touch $(BOOTSTRAP_CFG_DIR)/init
 
 zsh: $(HOME)/.zshrc ## Install ZSH and oh-my-zsh
 $(HOME)/.zshrc: $(CURDIR)/bootstrap-zsh
@@ -88,7 +89,7 @@ link: | $(DOTFILES) ## Link all files from config/dotfiles
 # $(CURDIR)/config/dotfiles/$(notdir $@)
 # 	notdir $@ is grabbing just the filename (not directory) and appending it to a different path (e.g. $(CURDIR)/config/dotfiles) 
 $(DOTFILES):
-	ln -sv "$(CURDIR)/config/dotfiles/$(notdir $@)" $@
+	@ln -sv "$(CURDIR)/config/dotfiles/$(notdir $@)" $@
 
 bootstrap-ssh: ## Bootstrapping SSH
 	@printf "\033[32mBootstrapping ssh for github...\033[0m\n"
@@ -105,7 +106,8 @@ else
 endif
 
 bootstrap-vim: ## Installing VIM plugins
-ifneq ("$(wildcard $(HOME)/.vim/autoload/plug.vim"),"")
+ifeq ("$(wildcard ${HOME}/.vim/autoload/plug.vim)","")
+	@echo "Bootstrapping vim..."
 	@curl -fLo $(HOME)/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
 	@ln -fs $(CURDIR)/config/vim/.vimrc $(HOME)/.vimrc
 	@mkdir $(HOME)/.vim/swaps
