@@ -74,10 +74,28 @@ $(BOOTSTRAP_CFG_DIR)/init:
 	sudo ./bootstrap-init
 	touch $(BOOTSTRAP_CFG_DIR)/init
 
-zsh: $(HOME)/.zshrc ## Install ZSH and oh-my-zsh
-$(HOME)/.zshrc: $(CURDIR)/bootstrap-zsh
-	./bootstrap-zsh
-	touch $(HOME)/.zshrc
+zsh: $(HOME)/.zshrc $(HOME)/.zplug.zsh ## Install ZSH and oh-my-zsh
+$(HOME)/.zshrc:
+# Download oh-my-zsh
+	curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh -o install-oh-my-zsh.sh;
+	sh install-oh-my-zsh.sh
+	rm install-oh-my-zsh.sh
+# Change shell to zsh
+	sudo chsh -s /usr/bin/zsh
+# Update DEFAULT_USER if one exists
+	@if ! grep -q DEFAULT_USER $HOME/.zshrc ; then \
+		echo "Updating DEAFULT_USER in .zshrc ..." ; \
+		echo "export DEFAULT_USER=`whoami`" >> $HOME/.zshrc ; \
+	fi
+
+$(HOME)/.zplug.zsh:
+# Install zplug
+	@curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh -o install-zplug;
+	@zsh install-zplug
+	@rm install-zplug
+	@ln -fs $(CURDIR)/config/zplug/.zplug.zsh $HOME/.zplug.zsh
+	@echo "[ -f ~/.zplug.zsh ] && source ~/.zplug.zsh" >> $HOME/.zshrc
+	@chmod -R g-w,o-w ~/.oh-my-zsh/custom/plugins/
 
 # HOMEFILES contains all files from config/dotfiles (e.g. .aliases, .functions, .inputrc)
 HOMEFILES := $(shell ls -A config/dotfiles) 
