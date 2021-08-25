@@ -59,7 +59,7 @@ endif
 
 install-brew: ## Install brew
 # Install brew
-	@if [ ! -n `which brew` ]; then \
+	@if [ ! `command -v brew` ]; then \
 		curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh | bash ; \
 		printf "\033[32mBrew installed...\033[0m\n" ; \
 		echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/dotuser/.profile ; \
@@ -67,11 +67,10 @@ install-brew: ## Install brew
 	else \
 		echo "Brew already installed!" ; \
 	fi
-	$(shell eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)")
 
 install-bat: install-brew ## Install bat (cat with wings)
 ifneq ($(UNAME),Darwin)
-	brew install bat
+	$(shell eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew install bat)
 	printf "\033[32mBrew configured...\033[0m\n\n"
 endif
 
@@ -116,7 +115,11 @@ ${HOME}/RobotoMono.zip:
 install-starship: ## Install starship
 	@if [ -n `which starship` ]; then \
 	echo "Installing starship..." ; \
-		brew install starship ; \
+		eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" ; \
+		brew install starship
+		if [[ ! -d ${HOME}/.config ]]; then \
+			mkdir ${HOME}/.config
+		fi
 		cp config/starship/starship.toml ${HOME}/.config ; \
 		echo 'eval "$(starship init zsh)"' >> ~/.zshrc ; \
 		printf "\033[32mstarship installed...\033[0m\n\n" ; \
