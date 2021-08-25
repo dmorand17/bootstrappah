@@ -1,56 +1,18 @@
-.PHONY: docker-build docker-test docker-clean update_submodules upgrade
 .DEFAULT_GOAL := help
 BOOTSTRAP_CFG_DIR = $(CURDIR)/.bootstrap
 
-CONTAINERS = $(shell which docker && docker ps -aq --filter "label=type=dotfiles")
-# Defaults value to master branch
-BRANCH ?= master
-SHA := $(shell curl -s 'https://api.github.com/repos/dmorand17/bootstrappah/git/refs/heads/$(BRANCH)' | jq -r '.object.sha')
 DATE = $(shell date +"%Y%m%d")
 backup_dir = ${HOME}/home-${DATE}.old
 
-#### START DOCKER SECTION
-RECENT_BUILD_BRANCH_SHA = $(shell cat .bootstrap/docker 2>/dev/null)
-BRANCH_SHA = $(BRANCH):$(SHA)
-
-docker-test: docker-build ## Test dotfiles using docker
-	docker run -e LANG="en_US.UTF-8" -e LANGUAGE="en_US.UTF-8" --label type=dotfiles -it bootstrappah /bin/bash
-
-docker-build: ## Build dotfiles container. [BRANCH]=branch to build (defaults to 'master')
-	@echo "Current build: $(RECENT_BUILD_BRANCH_SHA)"
-	@echo "Requested build: $(BRANCH_SHA)"
-ifeq ($(SHA),null)
-	$(error SHA is not set.  Please ensure that [$(BRANCH)] exists, and has been pushed to remote.  Other failures could be related to API Rate limit)
-endif
-ifneq ($(RECENT_BUILD_BRANCH_SHA),$(BRANCH_SHA))
-	docker build --file test/Dockerfile --build-arg BRANCH=$(BRANCH) --build-arg SHA=$(SHA) -t bootstrappah:latest .
-	@echo "Writing $(BRANCH_SHA) to $(CURDIR)/.bootstrap/docker"
-	@echo "$(BRANCH_SHA)" > $(CURDIR)/.bootstrap/docker
-else
-	@echo "Docker does not need to be built"
-endif
-
-docker-clean: ## Clean dotfiles docker containers/images
-ifneq ($(CONTAINERS),)
-	@echo "Removing containers: $(CONTAINERS)"
-	docker rm $(CONTAINERS)
-	docker image prune -f
-else
-	@echo "Nothing to clean..."
-endif
-#### END DOCKER SECTION
+upgrade: update_submodules ## Update the local repository, and run any updates
+	@echo "Updating..."
+	git pull origin master
+	zplug update
 
 update-submodules: ## Update submodules
 	@echo "Updating submodules..."
 	git submodule update --init --recursive
 	git submodule update --recursive
-
-upgrade: ## Update the local repository, and run any updates
-	@echo "Updating..."
-	zplug update
-	update_submodules
-
-.PHONY: bootstrap-backup init zsh link all bootstrap-min bootstrap-ssh bootstrap-vim bootstrap-robotomono bootstrap-starship bootstrap-homebrew
 
 bootstrap-backup: | $(backup_dir) ## Backup dotfiles
 	@echo "Continuation regardless of existence of $(backup_dir)"
@@ -69,12 +31,48 @@ bootstrap-min: ## Bootstrap minimum necessary - profile, aliases
 # Runs init job using order-only prequisite
 # Once job is run once the .bootstrap/init file will be created and init job will no longer run
 # Re-trigger by removing .bootsrap/init
-init: | $(BOOTSTRAP_CFG_DIR)/init ## Initialize linux system (install git, ssh, fzf, etc)
-$(BOOTSTRAP_CFG_DIR)/init:
-	sudo ./bootstrap-init
+install-packages: | $(BOOTSTRAP_CFG_DIR)/init ## Initialize linux system (install git, ssh, fzf, etc)
+$(BOOTSTRAP_CFG_DIR)/init: install-brew
+ifeq ($(UNAME),Darwin)
+	sh ./brew.sh
+else
+	@sudo add-apt-repository ppa:deadsnakes/ppa -y
+	@apt-get update -qq
+	@apt-get install -qq \
+		curl \
+		git \
+		vim \
+        fzf \
+        zsh \
+		rsync \
+        python3.9 \
+		python3-pip \
+        ripgrep \
+		ssh
+	@pip3 install virtualenvwrapper -qq
+endif
+#sudo ./bootstrap-init
 	touch $(BOOTSTRAP_CFG_DIR)/init
 
-zsh: $(HOME)/.zshrc $(HOME)/.zplug.zsh ## Install ZSH and oh-my-zsh
+install-brew:
+# Install brew
+	@if [ -n `which brew` ]; then \
+		curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh -o install.sh ; \
+		sh install.sh ; \
+		rm install.sh ; \
+		echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/dotuser/.profile ; \
+	eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" ; \
+	fi
+
+install-bat:
+ifneq ($(UNAME),Darwin)
+	@wget -O bat.tar.gz https://github.com/sharkdp/bat/releases/download/v0.18.3/bat-v0.15.4-x86_64-unknown-linux-musl.tar.gz
+	@tar -xzvf bat.tar.gz -C bat --strip-components=1
+	@rm ${HOME}/bat.tar.gz
+	@mv bat $(HOME).local/bin
+endif
+
+install-zsh: $(HOME)/.zshrc $(HOME)/.zplug.zsh ## Install ZSH and oh-my-zsh
 $(HOME)/.zshrc:
 # Download oh-my-zsh
 	curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh -o install-oh-my-zsh.sh;
@@ -103,12 +101,12 @@ HOMEFILES := $(shell ls -A config/dotfiles)
 DOTFILES := $(addprefix $(HOME)/,$(HOMEFILES))
 
 # This ensures that the .profile file will be renamed prior to any links
-profile-link: $(HOME)/.profile.old link
+profile-link: $(HOME)/.profile.old link ## Link all files from config/dotfiles
 $(HOME)/.profile.old: $(HOME)/.profile
 	@echo "Moving ${HOME}.profile to ${HOME}.profile.old"
 	@mv ${HOME}/.profile ${HOME}/.profile.old
 
-link: | $(DOTFILES) ## Link all files from config/dotfiles
+link: | $(DOTFILES)
 # This will link all of our dotfiles into our home directory.  
 # This will NOT link any existing files
 # $(CURDIR)/config/dotfiles/$(notdir $@)
@@ -148,16 +146,20 @@ ${HOME}/RobotoMono.zip:
 	@curl -L https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/RobotoMono.zip --output ${HOME}/RobotoMono.zip
 
 bootstrap-starship: ## Install starship
-	@if [ -n `which starship` ]; then ./bootstrap-starship; fi
-
-bootstrap-homebrew: ## install linux homebrew (optional)
 	@if [ -n `which brew` ]; then \
-		curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh | bash ; \
-		echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/dotuser/.profile ; \
-    	eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" ; \
+	echo "Installing starship..." \
+		curl -fsSL https://starship.rs/install.sh -o install.sh \
+		sh install.sh \
+		rm install.sh \
+		if [[ ! -d $HOME/.config ]]; then \
+			mkdir $HOME/.config \
+		fi \
+		cp config/starship/starship.toml $HOME/.config \
+		echo 'eval "$(starship init zsh)"' >> ~/.zshrc \
+		echo "Installation complete!" \
 	fi
 
-all: bootstrap-backup init zsh profile-link | bootstrap-ssh bootstrap-vim bootstrap-robotomono bootstrap-starship ## Bootstrap system (install/configure apps, link dotfiles)
+all: bootstrap-backup install-packages zsh profile-link | bootstrap-ssh bootstrap-vim bootstrap-robotomono bootstrap-starship ## Bootstrap system (install/configure apps, link dotfiles)
 	@echo "Bootstrapping system completed!"
 
 # Automatically build a help menu
@@ -166,3 +168,4 @@ help:
 	| sort \
 	| awk 'BEGIN {FS = ":.*?## "; printf "\033[31m\nHelp Commands\033[0m\n--------------------------------\n"}; {printf "\033[32m%-22s\033[0m %s\n", $$1, $$2}'
 
+.PHONY: bootstrap-backup bootstrap-min install-packages install-brew install-zsh install-bat profile-link link bootstrap-ssh bootstrap-vim bootstrap-robotomono bootstrap-starship update_submodules upgrade all bootstrap-robotomono

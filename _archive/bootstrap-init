@@ -22,7 +22,7 @@ exe git submodule update --recursive
 bootstrap_linux() {
     printf "\nSetting up Linux\n"
     # Add Python repository
-    add-apt-repository ppa:deadsnakes/ppa
+    add-apt-repository ppa:deadsnakes/ppa -y
     apt-get update -qq
 
 	apt-get install -qq \

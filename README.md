@@ -56,14 +56,6 @@ Show useful examples of how the program can be used, screenshots, etc.
 
 Output from `make help`
 ```
-bootstrap              Bootstrap system (install/configure apps, link dotfiles)
-build                  Build dotfiles container. [BRANCH]=branch to build (defaults to 'master')
-clean                  Clean dotfiles docker containers/images
-test                   Test dotfiles using docker
-function               Perform 1..n functions defined from bootstrap script
-link                   Links files for shell
-upgrade                Upgrade the local repository, and run any updates
-update_submodules      Update submodules
 ```
 ### Upgrade existing system
 
@@ -91,27 +83,14 @@ git config --global user.email "$GIT_AUTHOR_EMAIL
 ```
 
 ### Optional Steps
-
-**Homebrew**
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
-
-**Starship**
-```bash
-curl -fsSL https://starship.rs/install.sh | bash
-cp .starship.toml $HOME/.config
-echo 'eval "$(starship init zsh)"' >> ~/.zshrc
-```
-
+add anything optional here
 ## Running Tests
 
 A docker image can be created to be used to test.
 
 | Command     | Description |
 | ----------- | ----------- |
-| `make build [BRANCH='branch']`| Build an image.  Default branch is `master` |
-| `make test`| launch docker container to test out the bootstrappah |
+| `make test [BRANCH='branch']`| Build an image.  Default branch is `master` |
 | `make clean`| clean any unused images/containers |
 
 
