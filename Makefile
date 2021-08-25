@@ -5,7 +5,7 @@ DATE = $(shell date +"%Y%m%d")
 backup_dir = ${HOME}/home-${DATE}.old
 
 upgrade: update_submodules ## Update the local repository, and run any updates
-	@echo "Updating..."
+	@echo "Upgrading..."
 	git pull origin master
 	zplug update
 
@@ -54,7 +54,7 @@ endif
 #sudo ./bootstrap-init
 	touch $(BOOTSTRAP_CFG_DIR)/init
 
-install-brew:
+install-brew: ## Install brew
 # Install brew
 	@if [ -n `which brew` ]; then \
 		curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh -o install.sh ; \
@@ -62,14 +62,13 @@ install-brew:
 		rm install.sh ; \
 		echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/dotuser/.profile ; \
 	eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" ; \
+	else \
+		echo "Brew already installed!"
 	fi
 
-install-bat:
+install-bat: install-brew ## Install bat (cat with wings)
 ifneq ($(UNAME),Darwin)
-	@wget -O bat.tar.gz https://github.com/sharkdp/bat/releases/download/v0.18.3/bat-v0.15.4-x86_64-unknown-linux-musl.tar.gz
-	@tar -xzvf bat.tar.gz -C bat --strip-components=1
-	@rm ${HOME}/bat.tar.gz
-	@mv bat $(HOME).local/bin
+	brew install bat
 endif
 
 install-zsh: $(HOME)/.zshrc $(HOME)/.zplug.zsh ## Install ZSH and oh-my-zsh
@@ -159,7 +158,8 @@ bootstrap-starship: ## Install starship
 		echo "Installation complete!" \
 	fi
 
-all: bootstrap-backup install-packages zsh profile-link | bootstrap-ssh bootstrap-vim bootstrap-robotomono bootstrap-starship ## Bootstrap system (install/configure apps, link dotfiles)
+## Safe to re-run
+install: bootstrap-backup install-packages profile-link install-zsh install-brew install-bat | bootstrap-ssh bootstrap-vim bootstrap-starship bootstrap-robotomono ## Bootstrap system
 	@echo "Bootstrapping system completed!"
 
 # Automatically build a help menu
