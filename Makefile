@@ -14,7 +14,7 @@ update-submodules: ## Update submodules
 	git submodule update --init --recursive
 	git submodule update --recursive
 
-bootstrap-backup: | $(backup_dir) ## Backup dotfiles
+backup: | $(backup_dir) ## Backup dotfiles
 #	@echo "Continuation regardless of existence of $(backup_dir)"
 	@echo "Backing up dotfiles..."
 	@find ${HOME} -maxdepth 1 -name ".[^.]*" -type f -exec echo "backing up {} ..." \; -exec cp -rf "{}" ${backup_dir} \;
@@ -59,19 +59,20 @@ endif
 
 install-brew: ## Install brew
 # Install brew
-	@if [ -n `which brew` ]; then \
+	@if [ ! -n `which brew` ]; then \
 		curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh | bash ; \
 		printf "\033[32mBrew installed...\033[0m\n" ; \
 		echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/dotuser/.profile ; \
-	eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" ; \
 		printf "\033[32mBrew configured...\033[0m\n\n" ; \
 	else \
 		echo "Brew already installed!" ; \
 	fi
+	$(shell eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)")
 
 install-bat: install-brew ## Install bat (cat with wings)
 ifneq ($(UNAME),Darwin)
 	brew install bat
+	printf "\033[32mBrew configured...\033[0m\n\n"
 endif
 
 install-zsh: $(HOME)/.zshrc $(HOME)/.zplug.zsh ## Install ZSH and oh-my-zsh
@@ -115,16 +116,11 @@ ${HOME}/RobotoMono.zip:
 install-starship: ## Install starship
 	@if [ -n `which starship` ]; then \
 	echo "Installing starship..." ; \
-		curl -fsSL https://starship.rs/install.sh -o install.sh ; \
-		sh install.sh ; \
-		rm install.sh ; \
-		if [[ ! -d $HOME/.config ]]; then \
-			mkdir $HOME/.config ; \
-		fi \
-		cp config/starship/starship.toml $HOME/.config ; \
+		brew install starship ; \
+		cp config/starship/starship.toml ${HOME}/.config ; \
 		echo 'eval "$(starship init zsh)"' >> ~/.zshrc ; \
 		printf "\033[32mstarship installed...\033[0m\n\n" ; \
-	else
+	else \
 		printf "\033[31mstarship already installed...\033[0m\n\n" ; \
 	fi
 
@@ -156,7 +152,7 @@ ifeq ("$(wildcard ${HOME}/.ssh)","")
 	@ln -fs $(CURDIR)/config/ssh/.ssh-agent $(HOME)/.ssh-agent
 	@printf "\033[32mssh bootstrapped...\033[0m\n\n"
 else
-	@printf "\033[31m${HOME}/.ssh Directory already exists... \033[0m\n"
+	@printf "\033[31m${HOME}/.ssh already exists... \033[0m\n"
 endif
 
 bootstrap-vim: ## Installing VIM plugins
@@ -173,8 +169,10 @@ else
 endif
 
 ## Safe to re-run
-install: bootstrap-backup install-packages profile-link install-zsh install-brew install-bat install-robotomono | bootstrap-ssh bootstrap-vim install-starship ## Bootstrap system
-	@echo "Bootstrapping system completed!"
+install: backup install-packages profile-link install-zsh install-brew install-bat install-starship install-robotomono | bootstrap  ## Bootstrap system
+	@printf "\033[1;33mBootstrapping system completed\033[0m\n\n"
+
+bootstrap: bootstrap-ssh bootstrap-vim
 
 # Automatically build a help menu
 help:
@@ -182,4 +180,4 @@ help:
 	| sort \
 	| awk 'BEGIN {FS = ":.*?## "; printf "\033[31m\nHelp Commands\033[0m\n--------------------------------\n"}; {printf "\033[32m%-22s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: bootstrap-backup bootstrap-min install-packages install-brew install-zsh install-bat profile-link link bootstrap-ssh bootstrap-vim install-robotomono install-starship update_submodules upgrade all bootstrap-robotomono
+.PHONY: backup bootstrap-min install-packages install-brew install-zsh install-bat profile-link link bootstrap-ssh bootstrap-vim install-robotomono install-starship update_submodules upgrade all bootstrap-robotomono
