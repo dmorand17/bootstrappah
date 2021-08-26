@@ -55,14 +55,29 @@ Requirements for the software and other tools to build, test and push
 Show useful examples of how the program can be used, screenshots, etc.
 
 1.  Run `make getting-started` to perform necessary backups, and install essential apps (git, curl, jq, etc)
-1.  Run `make bootstrap` to complete the bootstrapping process
+1.  Run `zsh` to launch zsh to continue bootstrapping
+1.  Run `make install-and-bootstrap` to install and bootstrap applications
     * Configures the following apps:
         * ssh
         * vim
 
 Output from `make help`
 ```
-
+Help Commands
+--------------------------------
+backup                 Backup dotfiles
+bootstrap-min          Bootstrap minimum necessary - profile, aliases
+bootstrap-ssh          Bootstrapping SSH
+bootstrap-vim          Installing VIM plugins
+bootstrap-zsh          Install ZSH and oh-my-zsh
+getting-started        Run backups, link dotfiles, and install essential applications (curl, git, jq, etc)
+install-and-bootstrap  Install and bootstrap system
+install-bat            Install bat (cat with wings)
+install-packages       Initialize linux system (install git, ssh, fzf, etc)
+install-starship       Install starship
+link                   Link dotfiles
+update-submodules      Update submodules
+upgrade                Update the local repository, and run any updates
 ```
 ### Upgrade existing system
 

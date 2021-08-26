@@ -51,7 +51,7 @@ $(DOTFILES):
 # Runs init job using order-only prequisite
 # Once job is run once the .bootstrap/init file will be created and init job will no longer run
 # Re-trigger by removing .bootsrap/init
-install-packages: | $(BOOTSTRAP_CFG_DIR)/init ## Initialize linux system (install git, ssh, fzf, etc)
+install-packages: | $(BOOTSTRAP_CFG_DIR)/init bootstrap-zsh ## Initialize linux system (install git, ssh, fzf, etc)
 $(BOOTSTRAP_CFG_DIR)/init: install-brew
 ifeq ($(UNAME),Darwin)
 	sh ./brew.sh
@@ -82,7 +82,6 @@ install-brew: /home/linuxbrew/.linuxbrew/bin/brew
 	@if [ ! `command -v brew` ]; then \
 		curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh | bash ; \
 		printf "\033[32mBrew installed...\033[0m\n" ; \
-		echo 'eval "$$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ${HOME}/.profile ; \
 		printf "\033[32mBrew configured...\033[0m\n\n" ; \
 	else \
 		printf "\033[31mBrew already installed!\033[0m\n\n" ; \
@@ -110,7 +109,7 @@ $(HOME)/.config:
 	@echo "Folder $(HOME)/.config does not exist"
 	mkdir -p $@
 
-install-zsh: $(HOME)/.zshrc $(HOME)/.zplug.zsh ## Install ZSH and oh-my-zsh
+bootstrap-zsh: $(HOME)/.zshrc $(HOME)/.zplug.zsh ## Install ZSH and oh-my-zsh
 $(HOME)/.zshrc:
 # Download oh-my-zsh
 	@curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh -o install-oh-my-zsh.sh;
@@ -180,16 +179,17 @@ bootstrap-min: ## Bootstrap minimum necessary - profile, aliases
 	ln -fs config/dotfiles/.profile ${HOME}/.profile
 	@printf "\033[32mBootstrap min complete...\033[0m\n\n"
 
-all: getting-started install-and-bootstrap ## Run full install and bootstrap
-
 ## Safe to re-run
-getting-started: backup link install-packages  ## Run backups, link dotfiles, and install essential applications (curl, git, jq, etc)
-	. ${HOME}/.profile > /dev/null
+getting-started: backup link install-packages ## Run backups, link dotfiles, and install essential applications (curl, git, jq, etc)
 	@printf "\033[1;33mGetting started completed\033[0m\n\n"
+ifneq ($(UNAME),Darwin)
+	@echo 'eval "$$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ${HOME}/.zshrc
+endif
+	@printf "\033[1;33mLaunch `zsh` to continue\033[0m\n\n"
 
 install-and-bootstrap: install-apps bootstrap-apps ## Install and bootstrap system
 
-install-apps: install-zsh install-bat install-starship install-robotomono install-dircolors
+install-apps: install-bat install-starship install-robotomono install-dircolors
 	@printf "\033[1;33mInstalling apps completed\033[0m\n\n"
 bootstrap-apps: bootstrap-ssh bootstrap-vim
 	@printf "\033[1;33mBootstrapping completed\033[0m\n\n"
@@ -200,4 +200,4 @@ help:
 	| sort \
 	| awk 'BEGIN {FS = ":.*?## "; printf "\033[31m\nHelp Commands\033[0m\n--------------------------------\n"}; {printf "\033[32m%-22s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: all backup link bootstrap-min install-and-bootstrap bootstrap-apps install-packages install-brew install-zsh install-bat profile-link bootstrap-ssh bootstrap-vim install-robotomono install-dircolors install-starship update_submodules upgrade all bootstrap-robotomono
+.PHONY: all backup link bootstrap-min install-and-bootstrap bootstrap-apps install-packages install-brew bootstrap-zsh install-bat profile-link bootstrap-ssh bootstrap-vim install-robotomono install-dircolors install-starship update_submodules upgrade all bootstrap-robotomono
