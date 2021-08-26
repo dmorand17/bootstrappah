@@ -3,6 +3,10 @@ BOOTSTRAP_CFG_DIR = $(CURDIR)/.bootstrap
 
 DATE = $(shell date +"%Y%m%d")
 backup_dir = ${HOME}/home-${DATE}.old
+# HOMEFILES contains all files from config/dotfiles (e.g. .aliases, .functions, .inputrc)
+HOMEFILES := $(shell ls -A config/dotfiles)
+# DOTFILES is a list of resulting linked file (e.g. $(HOME)/.aliases)
+DOTFILES := $(addprefix $(HOME)/,$(HOMEFILES))
 
 upgrade: update_submodules ## Update the local repository, and run any updates
 	@echo "Upgrading..."
@@ -24,6 +28,22 @@ $(backup_dir):
 	@echo "Folder $(backup_dir) does not exist"
 	@mkdir $@
 
+# This ensures that the .profile file will be renamed prior to any links
+profile-link: $(HOME)/.profile.old link  ## Link all files from config/dotfiles
+$(HOME)/.profile.old: $(HOME)/.profile
+	@echo "Moving ${HOME}/.profile to ${HOME}.profile.old"
+	@mv ${HOME}/.profile ${HOME}/.profile.old
+
+link: | $(DOTFILES)
+	@printf "\033[32mdotfiles linked...\033[0m\n\n"
+
+# This will link all of our dotfiles into our home directory.
+# This will NOT link any existing files
+# $(CURDIR)/config/dotfiles/$(notdir $@)
+# 	notdir $@ is grabbing just the filename (not directory) and appending it to a different path (e.g. $(CURDIR)/config/dotfiles)
+$(DOTFILES):
+	@ln -sv "$(CURDIR)/config/dotfiles/$(notdir $@)" $@
+
 # Runs init job using order-only prequisite
 # Once job is run once the .bootstrap/init file will be created and init job will no longer run
 # Re-trigger by removing .bootsrap/init
@@ -35,6 +55,7 @@ else
 	@sudo add-apt-repository ppa:deadsnakes/ppa -y > /dev/null
 	@sudo apt-get update -qq > /dev/null
 	@sudo apt-get install -qq \
+		build-essential \
 		curl \
 		git \
 		vim \
@@ -112,32 +133,11 @@ $(HOME)/.zplug.zsh:
 	@chmod -R g-w,o-w ~/.oh-my-zsh/custom/plugins/
 	@printf "\033[32mzplug installed...\033[0m\n\n"
 
-# HOMEFILES contains all files from config/dotfiles (e.g. .aliases, .functions, .inputrc)
-HOMEFILES := $(shell ls -A config/dotfiles) 
-# DOTFILES is a list of resulting linked file (e.g. $(HOME)/.aliases)
-DOTFILES := $(addprefix $(HOME)/,$(HOMEFILES))
-
 install-robotomono: ${HOME}/RobotoMono.zip
 ${HOME}/RobotoMono.zip:
 	@echo "Downloading RobotMono v.2.1.0..."
 	@curl -L https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/RobotoMono.zip --output ${HOME}/RobotoMono.zip
 	@printf "\033[32mrobotomono downloaded to ${HOME}/RobotoMono.zip ...\033[0m\n\n"
-
-# This ensures that the .profile file will be renamed prior to any links
-profile-link: $(HOME)/.profile.old link ## Link all files from config/dotfiles
-$(HOME)/.profile.old: $(HOME)/.profile
-	@echo "Moving ${HOME}/.profile to ${HOME}.profile.old"
-	@mv ${HOME}/.profile ${HOME}/.profile.old
-
-link: | $(DOTFILES)
-	@printf "\033[32mdotfiles linked...\033[0m\n\n"
-
-# This will link all of our dotfiles into our home directory.  
-# This will NOT link any existing files
-# $(CURDIR)/config/dotfiles/$(notdir $@)
-# 	notdir $@ is grabbing just the filename (not directory) and appending it to a different path (e.g. $(CURDIR)/config/dotfiles) 
-$(DOTFILES):
-	@ln -sv "$(CURDIR)/config/dotfiles/$(notdir $@)" $@
 
 bootstrap-ssh: ## Bootstrapping SSH
 	@printf "\033[32mBootstrapping ssh for github...\033[0m\n"
@@ -173,12 +173,14 @@ bootstrap-min: ## Bootstrap minimum necessary - profile, aliases
 	ln -fs config/dotfiles/.profile ${HOME}/.profile
 	@printf "\033[32mBootstrap min complete...\033[0m\n\n"
 
+all: getting-started install-and-bootstrap ## Run full install and bootstrap
+
 ## Safe to re-run
-bootstrap: backup install-packages profile-link | install-apps bootstrap-apps  ## Bootstrap system
+getting-started: backup profile-link install-packages  ## Run backups, link dotfiles, and install essential applications (curl, git, jq, etc)
 	@printf "\033[1;33mBootstrapping system completed\033[0m\n\n"
+install-and-bootstrap: install-apps bootstrap-apps ## Install and bootstrap system
 
-install-apps: install-zsh install-brew install-bat install-starship install-robotomono
-
+install-apps: install-zsh install-bat install-starship install-robotomono
 bootstrap-apps: bootstrap-ssh bootstrap-vim
 
 # Automatically build a help menu
@@ -187,4 +189,4 @@ help:
 	| sort \
 	| awk 'BEGIN {FS = ":.*?## "; printf "\033[31m\nHelp Commands\033[0m\n--------------------------------\n"}; {printf "\033[32m%-22s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: backup bootstrap-min bootstrap-apps install-packages install-brew install-zsh install-bat profile-link link bootstrap-ssh bootstrap-vim install-robotomono install-starship update_submodules upgrade all bootstrap-robotomono
+.PHONY: all backup bootstrap-min install-and-bootstrap bootstrap-apps install-packages install-brew install-zsh install-bat profile-link link bootstrap-ssh bootstrap-vim install-robotomono install-starship update_submodules upgrade all bootstrap-robotomono

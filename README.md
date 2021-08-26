@@ -54,8 +54,15 @@ Requirements for the software and other tools to build, test and push
 
 Show useful examples of how the program can be used, screenshots, etc.
 
+1.  Run `make getting-started` to perform necessary backups, and install essential apps (git, curl, jq, etc)
+1.  Run `make bootstrap` to complete the bootstrapping process
+    * Configures the following apps:
+        * ssh
+        * vim
+
 Output from `make help`
 ```
+
 ```
 ### Upgrade existing system
 
@@ -93,7 +100,6 @@ A docker image can be created to be used to test.
 | `make -f Makefile-test test [BRANCH='branch']`| Build an image.  Default branch is `master` |
 | `make -f Makefile-test clean`| clean any unused images/containers |
 
-
 ## Versioning
 
 We use [Semantic Versioning](http://semver.org/) for versioning. For the versions
@@ -111,7 +117,6 @@ repository](https://github.com/dmorand17/{project}/tags).
 ## Roadmap
 
 - [ ] item 1
-- [ ] item 2
 
 ## License
 
