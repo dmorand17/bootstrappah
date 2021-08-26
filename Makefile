@@ -93,12 +93,18 @@ ifneq ($(UNAME),Darwin)
 	printf "\033[32mBat installed...\033[0m\n\n"
 endif
 
+install-node: install-brew ## Install bat (cat with wings)
+ifneq ($(UNAME),Darwin)
+	brew install node
+	printf "\033[32mBat installed...\033[0m\n\n"
+endif
+
 install-starship: install-brew | $(HOME)/.config## Install starship
 	@if [ -n `which starship` ]; then \
 		echo "Installing starship..." ; \
 		brew install starship ;\
 		cp config/starship/starship.toml ${HOME}/.config ; \
-		echo 'eval "$(starship init zsh)"' >> ~/.zshrc ; \
+		echo 'eval "$$(starship init zsh)"' >> ~/.zshrc ; \
 		printf "\033[32mstarship installed...\033[0m\n\n" ; \
 	else \
 		printf "\033[31mstarship already installed...\033[0m\n\n" ; \
@@ -187,7 +193,7 @@ ifneq ($(UNAME),Darwin)
 endif
 	@printf "\033[1;33mLaunch `zsh` to continue\033[0m\n\n"
 
-install-and-bootstrap: install-bat bootstrap-apps ## Install and bootstrap system
+install-and-bootstrap: install-bat install-node bootstrap-apps ## Install and bootstrap system
 
 install-optional:  install-starship install-robotomono ## Install optional apps (starship, robotomono)
 	@printf "\033[1;33mInstalling apps completed\033[0m\n\n"
