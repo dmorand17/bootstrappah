@@ -57,12 +57,16 @@ endif
 	touch $(BOOTSTRAP_CFG_DIR)/init
 	@printf "\033[32mPackages installed...\033[0m\n\n"
 
-install-brew: ## Install brew
+activate-brew:
+	@eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+install-brew: /home/linuxbrew/.linuxbrew/bin/brew
+/home/linuxbrew/.linuxbrew/bin/brew: ## Install brew
 # Install brew
 	@if [ ! `command -v brew` ]; then \
 		curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh | bash ; \
 		printf "\033[32mBrew installed...\033[0m\n" ; \
-		echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/dotuser/.profile ; \
+		echo 'eval "$$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/dotuser/.profile ; \
 		printf "\033[32mBrew configured...\033[0m\n\n" ; \
 	else \
 		echo "Brew already installed!" ; \
@@ -70,9 +74,25 @@ install-brew: ## Install brew
 
 install-bat: install-brew ## Install bat (cat with wings)
 ifneq ($(UNAME),Darwin)
-	$(shell eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew install bat)
+	brew install bat
 	printf "\033[32mBrew configured...\033[0m\n\n"
 endif
+
+install-starship: install-brew | $(HOME)/.config## Install starship
+	@if [ -n `which starship` ]; then \
+	echo "Installing starship..." ; \
+#eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv && brew install starship)" ; \
+		brew install starship ;\
+		cp config/starship/starship.toml ${HOME}/.config ; \
+		echo 'eval "$(starship init zsh)"' >> ~/.zshrc ; \
+		printf "\033[32mstarship installed...\033[0m\n\n" ; \
+	else \
+		printf "\033[31mstarship already installed...\033[0m\n\n" ; \
+	fi
+
+$(HOME)/.config:
+	@echo "Folder $(HOME)/.config does not exist"
+	mkdir -p $@
 
 install-zsh: $(HOME)/.zshrc $(HOME)/.zplug.zsh ## Install ZSH and oh-my-zsh
 $(HOME)/.zshrc:
@@ -111,21 +131,6 @@ ${HOME}/RobotoMono.zip:
 	@echo "Downloading RobotMono v.2.1.0..."
 	@curl -L https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/RobotoMono.zip --output ${HOME}/RobotoMono.zip
 	@printf "\033[32mrobotomono downloaded to ${HOME}/RobotoMono.zip ...\033[0m\n\n"
-
-install-starship: ## Install starship
-	@if [ -n `which starship` ]; then \
-	echo "Installing starship..." ; \
-		eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" ; \
-		brew install starship
-		if [[ ! -d ${HOME}/.config ]]; then \
-			mkdir ${HOME}/.config
-		fi
-		cp config/starship/starship.toml ${HOME}/.config ; \
-		echo 'eval "$(starship init zsh)"' >> ~/.zshrc ; \
-		printf "\033[32mstarship installed...\033[0m\n\n" ; \
-	else \
-		printf "\033[31mstarship already installed...\033[0m\n\n" ; \
-	fi
 
 # This ensures that the .profile file will be renamed prior to any links
 profile-link: $(HOME)/.profile.old link ## Link all files from config/dotfiles
