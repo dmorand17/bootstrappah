@@ -184,11 +184,15 @@ all: getting-started install-and-bootstrap ## Run full install and bootstrap
 
 ## Safe to re-run
 getting-started: backup link install-packages  ## Run backups, link dotfiles, and install essential applications (curl, git, jq, etc)
-	@printf "\033[1;33mBootstrapping system completed\033[0m\n\n"
+	. ${HOME}/.profile > /dev/null
+	@printf "\033[1;33mGetting started completed\033[0m\n\n"
+
 install-and-bootstrap: install-apps bootstrap-apps ## Install and bootstrap system
 
 install-apps: install-zsh install-bat install-starship install-robotomono install-dircolors
+	@printf "\033[1;33mInstalling apps completed\033[0m\n\n"
 bootstrap-apps: bootstrap-ssh bootstrap-vim
+	@printf "\033[1;33mBootstrapping completed\033[0m\n\n"
 
 # Automatically build a help menu
 help:
