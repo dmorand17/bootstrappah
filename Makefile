@@ -66,7 +66,7 @@ install-brew: /home/linuxbrew/.linuxbrew/bin/brew
 	@if [ ! `command -v brew` ]; then \
 		curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh | bash ; \
 		printf "\033[32mBrew installed...\033[0m\n" ; \
-		echo 'eval "$$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/dotuser/.profile ; \
+		echo 'eval "$$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ${HOME}.profile ; \
 		printf "\033[32mBrew configured...\033[0m\n\n" ; \
 	else \
 		echo "Brew already installed!" ; \
