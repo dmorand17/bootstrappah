@@ -180,16 +180,16 @@ bootstrap-min: ## Bootstrap minimum necessary - profile, aliases
 	@printf "\033[32mBootstrap min complete...\033[0m\n\n"
 
 ## Safe to re-run
-getting-started: backup link install-packages ## Run backups, link dotfiles, and install essential applications (curl, git, jq, etc)
+getting-started: backup update-submodules link install-packages ## Run backups, link dotfiles, and install essential applications (curl, git, jq, etc)
 	@printf "\033[1;33mGetting started completed\033[0m\n\n"
 ifneq ($(UNAME),Darwin)
 	@echo 'eval "$$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ${HOME}/.zshrc
 endif
 	@printf "\033[1;33mLaunch `zsh` to continue\033[0m\n\n"
 
-install-and-bootstrap: install-apps bootstrap-apps ## Install and bootstrap system
+install-and-bootstrap: install-bat bootstrap-apps ## Install and bootstrap system
 
-install-apps: install-bat install-starship install-robotomono
+install-optional:  install-starship install-robotomono ## Install optional apps (starship, robotomono)
 	@printf "\033[1;33mInstalling apps completed\033[0m\n\n"
 bootstrap-apps: bootstrap-ssh bootstrap-vim
 	@printf "\033[1;33mBootstrapping completed\033[0m\n\n"
@@ -200,4 +200,4 @@ help:
 	| sort \
 	| awk 'BEGIN {FS = ":.*?## "; printf "\033[31m\nHelp Commands\033[0m\n--------------------------------\n"}; {printf "\033[32m%-22s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: all backup link bootstrap-min install-and-bootstrap bootstrap-apps install-packages install-brew bootstrap-zsh install-bat profile-link bootstrap-ssh bootstrap-vim install-robotomono install-dircolors install-starship update_submodules upgrade all bootstrap-robotomono
+.PHONY: all backup link bootstrap-min install-and-bootstrap install-optional bootstrap-apps install-packages install-brew bootstrap-zsh install-bat profile-link bootstrap-ssh bootstrap-vim install-robotomono install-dircolors install-starship update_submodules upgrade all bootstrap-robotomono
