@@ -29,7 +29,10 @@ $(backup_dir):
 	@mkdir $@
 
 mv-profile:
-	@mv ${HOME}/.profile ${HOME}/.profile.old
+	@if [ ! -h ${HOME}/.profile ]; then \
+		echo "Moving ${HOME}/.profile to ${HOME}/.profile.old" ; \
+		mv ${HOME}/.profile ${HOME}/.profile.old ; \
+	fi
 
 $(HOME)/.profile.old: $(HOME)/.profile
 	@echo "Moving ${HOME}/.profile to ${HOME}/.profile.old"
@@ -140,6 +143,9 @@ ${HOME}/RobotoMono.zip:
 	@curl -L https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/RobotoMono.zip --output ${HOME}/RobotoMono.zip
 	@printf "\033[32mrobotomono downloaded to ${HOME}/RobotoMono.zip ...\033[0m\n\n"
 
+install-dircolors:
+	@ln -fs $(CURDIR)/plugins/dircolors-solarized ${HOME}/dircolors-solarized
+
 bootstrap-ssh: ## Bootstrapping SSH
 	@printf "\033[32mBootstrapping ssh for github...\033[0m\n"
 ifeq ("$(wildcard ${HOME}/.ssh)","")
@@ -177,11 +183,11 @@ bootstrap-min: ## Bootstrap minimum necessary - profile, aliases
 all: getting-started install-and-bootstrap ## Run full install and bootstrap
 
 ## Safe to re-run
-getting-started: backup profile-link install-packages  ## Run backups, link dotfiles, and install essential applications (curl, git, jq, etc)
+getting-started: backup link install-packages  ## Run backups, link dotfiles, and install essential applications (curl, git, jq, etc)
 	@printf "\033[1;33mBootstrapping system completed\033[0m\n\n"
 install-and-bootstrap: install-apps bootstrap-apps ## Install and bootstrap system
 
-install-apps: install-zsh install-bat install-starship install-robotomono
+install-apps: install-zsh install-bat install-starship install-robotomono install-dircolors
 bootstrap-apps: bootstrap-ssh bootstrap-vim
 
 # Automatically build a help menu
@@ -190,4 +196,4 @@ help:
 	| sort \
 	| awk 'BEGIN {FS = ":.*?## "; printf "\033[31m\nHelp Commands\033[0m\n--------------------------------\n"}; {printf "\033[32m%-22s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: all backup link bootstrap-min install-and-bootstrap bootstrap-apps install-packages install-brew install-zsh install-bat profile-link bootstrap-ssh bootstrap-vim install-robotomono install-starship update_submodules upgrade all bootstrap-robotomono
+.PHONY: all backup link bootstrap-min install-and-bootstrap bootstrap-apps install-packages install-brew install-zsh install-bat profile-link bootstrap-ssh bootstrap-vim install-robotomono install-dircolors install-starship update_submodules upgrade all bootstrap-robotomono
