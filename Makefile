@@ -28,13 +28,14 @@ $(backup_dir):
 	@echo "Folder $(backup_dir) does not exist"
 	@mkdir $@
 
-# This ensures that the .profile file will be renamed prior to any links
-profile-link: $(HOME)/.profile.old link  ## Link all files from config/dotfiles
-$(HOME)/.profile.old: $(HOME)/.profile
-	@echo "Moving ${HOME}/.profile to ${HOME}.profile.old"
+mv-profile:
 	@mv ${HOME}/.profile ${HOME}/.profile.old
 
-link: | $(DOTFILES)
+$(HOME)/.profile.old: $(HOME)/.profile
+	@echo "Moving ${HOME}/.profile to ${HOME}/.profile.old"
+	@mv ${HOME}/.profile ${HOME}/.profile.old
+
+link: backup mv-profile | $(DOTFILES) ## Link dotfiles
 	@printf "\033[32mdotfiles linked...\033[0m\n\n"
 
 # This will link all of our dotfiles into our home directory.
@@ -189,4 +190,4 @@ help:
 	| sort \
 	| awk 'BEGIN {FS = ":.*?## "; printf "\033[31m\nHelp Commands\033[0m\n--------------------------------\n"}; {printf "\033[32m%-22s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: all backup bootstrap-min install-and-bootstrap bootstrap-apps install-packages install-brew install-zsh install-bat profile-link link bootstrap-ssh bootstrap-vim install-robotomono install-starship update_submodules upgrade all bootstrap-robotomono
+.PHONY: all backup link bootstrap-min install-and-bootstrap bootstrap-apps install-packages install-brew install-zsh install-bat profile-link bootstrap-ssh bootstrap-vim install-robotomono install-starship update_submodules upgrade all bootstrap-robotomono
