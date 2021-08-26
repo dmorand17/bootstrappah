@@ -1,0 +1,302 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if [[ ! -f bootstrap ]]; then
+	echo "Bootstrap must be run from dotfiles directory ..."
+	exit 1
+fi
+
+DOTFILES=$(pwd)
+
+# COLORS
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+WHITE='\033[1;37m'
+GREEN='\033[0;32m'
+RESET='\033[0m'
+
+case "$OSTYPE" in
+  darwin*)
+	os='mac'
+    ;;
+  *)
+	os='nix'
+    ;;
+esac
+
+cat extras/dougie-bootstrap
+
+successfully() {
+	$* || (echo "failed" 1>&2 && exit 1)
+}
+
+exe() { echo "\$ $@" ; "$@" ; }
+
+exe_fancy(){
+    "$@"
+    if [[ $? -eq 0 ]]; then
+        #icon_success
+        printf "Success \Uf058\n\n"
+    else
+        #icon_fail
+        printf "Failed \Uf06a\n\n"
+    fi
+}
+
+icon_success() {
+    # 
+    printf "\t{GREEN}\Uf058{RESET}\n"
+}
+
+icon_fail() {
+    # 
+    printf "\t{RED}\Uf06a{RESET}\n"
+}
+
+icon_question() {
+    # 
+    printf "\t{BLUE}\Uf059{RESET}\n"
+}
+
+icon_warning() {
+    # 
+    printf "\t{YELLOW}\Uf071{RESET}"
+}
+
+# 
+# 
+
+info() {
+    printf "$1\n"
+}
+
+bootstrap_linux() {
+    info "Setting up Linux"
+    # Add Python repository
+    sudo add-apt-repository ppa:deadsnakes/ppa
+    sudo apt-get update -qq
+
+	sudo apt-get install -qq \
+		curl \
+		git \
+		vim \
+        fzf \
+		rsync \
+        python3.9 \
+		python3-pip \
+        ripgrep \
+		ssh
+
+    sudo pip3 install virtualenvwrapper -qq
+
+    # Install homebrew for linux
+    # /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+}
+
+bootstrap_mac(){
+    info "Setting up Mac"
+    exe_fancy sh brew.sh
+}
+
+bootstrap_windows() {
+    info "Setting up Windows"
+    info "Not yet implemented"
+}
+
+link() {
+    info "Linking $1 -> $2..."
+    exe_fancy ln -fs $1 $2
+}
+
+nerdfont_robotomono() {
+    info "Downloading RobotoMono Nerd Fonts..."
+    exe_fancy curl -LO https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/RobotoMono.zip
+}
+
+link_shell() {
+    info "Linking files"
+    #find ./config -type f | xargs -I{} link "{}" $HOME
+    shopt -s dotglob
+    for file in shell-config/*; do
+        filename=$(basename $file)
+        link "$DOTFILES/$file" "$HOME/$filename"
+    done
+}
+
+configure_ssh() {
+    info "Configuring SSH..."
+    if [[ ! -d $HOME/.ssh ]]; then
+        mkdir $HOME/.ssh
+    fi
+
+    if [[ ! -f $HOME/.ssh/authorized_keys ]]; then
+        touch $HOME/.ssh/authorized_keys
+    fi
+
+    chmod 700 ~/.ssh
+    exe_fancy chmod 600 ~/.ssh/authorized_keys
+}
+
+configure_vim() {
+    echo "Installing vim-plug..."
+    if [[ ! -f $HOME/.vim/autoload/plug.vim ]]; then
+        exe_fancy curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
+        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+    else
+        info "already installed"
+    fi
+}
+
+install_starship() {
+    # Install starship
+    info "Installing starship..."
+    exe_fancy curl -fsSL https://starship.rs/install.sh | bash
+
+    cp .starship.toml $HOME/.config
+    # Ignore this until starship git prompt speeds up
+    echo 'eval "$(starship init zsh)"' >> ~/.zshrc
+}
+
+install_powerline() {
+    info "Installing powerline-fonts ..."
+    pushd plugins/powerline-fonts
+    exe_fancy ./install.sh
+    popd
+}
+
+install_zsh() {
+    read -p "Install zsh? (y/n) " -n 1;
+    echo "";
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo "Installing zsh and oh-my-zsh ..."
+        exe_fancy sudo apt-get install zsh -y
+
+        # Install unattended oh-my-zsh - https://github.com/ohmyzsh/ohmyzsh#unattended-install
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+
+        # Updating DEFAULT_USER to suppress username from prompt
+        if ! grep -q DEFAULT_USER $HOME/.zshrc ; then	
+            echo "Updating DEAFULT_USER in .zshrc ..."
+            echo "export DEFAULT_USER=`whoami`" >> $HOME/.zshrc
+        fi
+
+        install_zplug
+        
+        # Theme is handled by zplug
+        #zsh_theme dracula
+        
+        # This isn't necessary anymore with zplug
+        #sed -i 's/\(^plugins=([^)]*\)/\1 zsh-autosuggestions zsh-syntax-highlighting/' $HOME/.zshrc
+
+        chmod -R g-w,o-w ~/.oh-my-zsh/custom/plugins/
+    fi
+}
+
+zsh_theme() {
+    # Dracula theme is installed by zplug
+    THEME=${1:-dracula}
+    sed -i "s/ZSH_THEME=.*/ZSH_THEME=${THEME}/" $HOME/.zshrc
+}
+
+install_zplug() {
+    info "Installing zplug..." 
+    exe_fancy curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
+    
+    link $DOTFILES/apps/zplug/.zplug.zsh $HOME/.zplug.zsh
+    echo "[ -f ~/.zplug.zsh ] && source ~/.zplug.zsh" >> $HOME/.zshrc
+}
+
+bootstrap() {
+    case $os in
+        nix)
+            bootstrap_linux
+            ;;
+        mac)
+            bootstrap_mac
+            ;;
+    esac
+
+    info "Creating .config directory (if necessary)"
+    if [[ ! -d "$HOME/.config" ]]; then
+        mkdir $HOME/.config
+    fi
+
+    install_zsh
+    configure_vim
+    configure_ssh
+    link_shell
+}
+
+update_repo(){
+    info "Updating Project files...\n"
+    info "Updating repository..."
+    exe_fancy git pull origin master
+
+    info "Updating submodules..."
+    git submodule update --init --recursive
+    exe_fancy git submodule update --recursive
+}
+
+backup() {
+    info "Backing up dotfiles..."
+    # Backup the current dotfiles
+    DATE=$(date +"%Y%m%d-%H%M")
+    olddir=$HOME/dotfiles-$DATE.old
+    info "re-creating backup directory [$olddir]"
+    if [[ -d "$olddir" ]]; then
+        rm -rf $olddir
+        mkdir -p $olddir
+    else
+        mkdir -p $olddir
+    fi
+
+    info "Backup complete..."
+    exe_fancy find ~ -maxdepth 1 -name ".[^.]*" -type f -exec echo "backing up {} ..." \; -exec cp -rf "{}" $olddir \;
+}
+
+FORCE=""
+FUNCTION=bootstrap
+
+while getopts "fwhm:" opt; do
+  case $opt in
+    f)
+        echo "-f was triggered" >&2
+        FORCE=1
+        ;;
+	h)
+		echo "Usage: bootstrap.sh [-h] [-w] [-f]"
+		exit 1
+		;;
+    m) 
+        FUNCTION=$OPTARG
+        ;;
+    \?)
+        echo "Invalid option" >&2
+        exit 1
+        ;;
+    :)
+        echo "Option -$OPTARG requires an argument." >&2
+        exit 1
+        ;;
+  esac
+done
+
+update_repo
+backup
+
+if [[ $FORCE -eq 1 ]]; then
+	bootstrap;
+else
+	read -p "This may overwrite existing files in your home directory. Are you sure? (y/n) " -n 1;
+	echo "";
+	if [[ $REPLY =~ ^[Yy]$ ]]; then
+		echo ""
+        # perform function(s) passed
+		${FUNCTION}
+	fi;
+fi;
+
+info "Boostrapping complete, please reload the shell e.g. `exec zsh`"
+info "If changing to zsh, switch shell using `chsh -s $(which zsh)`"

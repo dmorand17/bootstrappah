@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+set -ou pipefail
+
+if [[ ! -f bootstrap-init ]]; then
+	echo "Bootstrap must be run from bootstrappah directory ..."
+	exit 1
+fi
+
+exe() { echo "\$ $@" ; "$@" ; }
+
+if [[ "$EUID" -ne 0 ]]; then
+    echo "Please run with 'sudo'"
+    exit
+fi
+
+printf "\nUpdating Project files...\n"
+exe git pull origin master
+exe git submodule update --init --recursive
+exe git submodule update --recursive
+
+bootstrap_linux() {
+    printf "\nSetting up Linux\n"
+    # Add Python repository
+    add-apt-repository ppa:deadsnakes/ppa -y
+    apt-get update -qq
+
+	apt-get install -qq \
+		curl \
+		git \
+		vim \
+        fzf \
+        zsh \
+		rsync \
+        python3.9 \
+		python3-pip \
+        ripgrep \
+		ssh
+
+    pip3 install virtualenvwrapper -qq
+}
+
+bootstrap_linux
+echo "Initialization complete"

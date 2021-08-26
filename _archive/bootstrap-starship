@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+set -ou pipefail
+
+if [[ ! -f bootstrap-init ]]; then
+	echo "Bootstrap must be run from bootstrappah directory ..."
+	exit 1
+fi
+
+exe() { echo "\$ $@" ; "$@" ; }
+
+# Install starship if not found
+if [[ ! $(command -v starship) ]]; then
+    echo "Installing starship..."
+    curl -fsSL https://starship.rs/install.sh | bash
+    if [[ ! -d $HOME/.config ]]; then
+        mkdir $HOME/.config
+    fi
+    cp config/starship/starship.toml $HOME/.config
+    echo 'eval "$(starship init zsh)"' >> ~/.zshrc
+    echo "Installation complete!"
+else
+    echo "Starship already installed"
+fi

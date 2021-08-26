@@ -1,59 +1,187 @@
-CONTAINERS := $(shell docker ps -aq --filter "label=type=dotfiles")
+.DEFAULT_GOAL := help
+BOOTSTRAP_CFG_DIR = $(CURDIR)/.bootstrap
 
-# Defaults value to master branch
-BRANCH ?= master
+DATE = $(shell date +"%Y%m%d")
+backup_dir = ${HOME}/home-${DATE}.old
+# HOMEFILES contains all files from config/dotfiles (e.g. .aliases, .functions, .inputrc)
+HOMEFILES := $(shell ls -A config/dotfiles)
+# DOTFILES is a list of resulting linked file (e.g. $(HOME)/.aliases)
+DOTFILES := $(addprefix $(HOME)/,$(HOMEFILES))
 
-SHA := $(shell curl -s 'https://api.github.com/repos/dmorand17/bootstrappah/git/refs/heads/$(BRANCH)' | jq -r '.object.sha')
+upgrade: update_submodules ## Update the local repository, and run any updates
+	@echo "Upgrading..."
+	git pull origin master
+	zplug update
 
-build: ## Build dotfiles container. [BRANCH]=branch to build (defaults to 'master')
-	@echo "gitsha1 -> $(SHA)"
-ifeq ($(SHA),null)
-	$(error SHA is not set.  Please ensure that [$(BRANCH)] exists)
-endif
-	docker build --file test/Dockerfile --build-arg BRANCH=$(BRANCH) --build-arg SHA=$(SHA) -t bootstrappah:latest .
-
-test: ## Test dotfiles using docker
-	docker run -e LANG="en_US.UTF-8" -e LANGUAGE="en_US.UTF-8" --label type=dotfiles -it bootstrappah /bin/bash
-
-clean: ## Clean dotfiles docker containers/images
-ifneq ($(CONTAINERS),)
-	@echo "Removing containers: $(CONTAINERS)"
-	docker rm $(CONTAINERS)
-	docker image prune -f
-else
-	@echo "Nothing to clean..."
-endif
-
-update_submodules: ## Update submodules
+update-submodules: ## Update submodules
 	@echo "Updating submodules..."
+	git submodule update --init --recursive
 	git submodule update --recursive
 
-link: ## TODO: Links files for shell
-	@echo "Linking dotfiles..."
+backup: | $(backup_dir) ## Backup dotfiles
+#	@echo "Continuation regardless of existence of $(backup_dir)"
+	@echo "Backing up dotfiles..."
+	@find ${HOME} -maxdepth 1 -name ".[^.]*" -type f -exec echo "backing up {} ..." \; -exec cp -rf "{}" ${backup_dir} \;
+	@printf "\033[32mBackup complete...\033[0m\n\n"
 
-upgrade: ## Update the local repository, and run any updates
-	@echo "Updating..."
-	zplug update
-	update_submodules
+$(backup_dir):
+	@echo "Folder $(backup_dir) does not exist"
+	@mkdir $@
 
-bootstrap: ## Bootstrap system (install/configure apps, link dotfiles)
-	@echo "Bootstrapping system..."
-	./bootstrap
+# This ensures that the .profile file will be renamed prior to any links
+profile-link: $(HOME)/.profile.old link  ## Link all files from config/dotfiles
+$(HOME)/.profile.old: $(HOME)/.profile
+	@echo "Moving ${HOME}/.profile to ${HOME}.profile.old"
+	@mv ${HOME}/.profile ${HOME}/.profile.old
 
-bootstrap-min: ## Bootstrap minimum necessary (vim, profile, aliases)
-	@echo "Bootstrapping minimum configuration..."
-	ln -fs shell/.aliases ${HOME}/.aliases
-	ln -fs shell/.profile ${HOME}/.profile
+link: | $(DOTFILES)
+	@printf "\033[32mdotfiles linked...\033[0m\n\n"
 
-function: ## TODO Perform function(s) defined from bootstrap script
-	@echo "Performing function(s)..."
-ifneq ($(FUNCTION),)
-	@for f in $(FUNCTION); do echo " > [$$f]"; done
+# This will link all of our dotfiles into our home directory.
+# This will NOT link any existing files
+# $(CURDIR)/config/dotfiles/$(notdir $@)
+# 	notdir $@ is grabbing just the filename (not directory) and appending it to a different path (e.g. $(CURDIR)/config/dotfiles)
+$(DOTFILES):
+	@ln -sv "$(CURDIR)/config/dotfiles/$(notdir $@)" $@
+
+# Runs init job using order-only prequisite
+# Once job is run once the .bootstrap/init file will be created and init job will no longer run
+# Re-trigger by removing .bootsrap/init
+install-packages: | $(BOOTSTRAP_CFG_DIR)/init ## Initialize linux system (install git, ssh, fzf, etc)
+$(BOOTSTRAP_CFG_DIR)/init: install-brew
+ifeq ($(UNAME),Darwin)
+	sh ./brew.sh
 else
-	@echo "Must pass at least 1 FUNCTION value"
+	@sudo add-apt-repository ppa:deadsnakes/ppa -y > /dev/null
+	@sudo apt-get update -qq > /dev/null
+	@sudo apt-get install -qq \
+		build-essential \
+		curl \
+		git \
+		vim \
+        fzf \
+        zsh \
+		rsync \
+        python3.9 \
+		python3-pip \
+        ripgrep \
+		ssh > /dev/null
+	@sudo pip3 install virtualenvwrapper -qq > /dev/null
+endif
+#sudo ./bootstrap-init
+	touch $(BOOTSTRAP_CFG_DIR)/init
+	@printf "\033[32mPackages installed...\033[0m\n\n"
+
+install-brew: /home/linuxbrew/.linuxbrew/bin/brew
+/home/linuxbrew/.linuxbrew/bin/brew: ## Install brew
+# Install brew
+	@if [ ! `command -v brew` ]; then \
+		curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh | bash ; \
+		printf "\033[32mBrew installed...\033[0m\n" ; \
+		echo 'eval "$$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ${HOME}/.profile ; \
+		printf "\033[32mBrew configured...\033[0m\n\n" ; \
+	else \
+		printf "\033[31mBrew already installed!\033[0m\n\n" ; \
+	fi
+
+install-bat: install-brew ## Install bat (cat with wings)
+ifneq ($(UNAME),Darwin)
+	brew install bat
+	printf "\033[32mBat installed...\033[0m\n\n"
 endif
 
-.PHONY: build test clean update_submodules link function bootstrap upgrade bootstrap-min
+install-starship: install-brew | $(HOME)/.config## Install starship
+	@if [ -n `which starship` ]; then \
+	echo "Installing starship..." ; \
+#eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv && brew install starship)" ; \
+		brew install starship ;\
+		cp config/starship/starship.toml ${HOME}/.config ; \
+		echo 'eval "$(starship init zsh)"' >> ~/.zshrc ; \
+		printf "\033[32mstarship installed...\033[0m\n\n" ; \
+	else \
+		printf "\033[31mstarship already installed...\033[0m\n\n" ; \
+	fi
+
+$(HOME)/.config:
+	@echo "Folder $(HOME)/.config does not exist"
+	mkdir -p $@
+
+install-zsh: $(HOME)/.zshrc $(HOME)/.zplug.zsh ## Install ZSH and oh-my-zsh
+$(HOME)/.zshrc:
+# Download oh-my-zsh
+	@curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh -o install-oh-my-zsh.sh;
+	@rm -rf ${HOME}/.oh-my-zsh
+	@sh install-oh-my-zsh.sh --unattended
+	@rm install-oh-my-zsh.sh
+# Change shell to zsh
+	@sudo chsh -s /usr/bin/zsh
+# Update DEFAULT_USER if one exists
+	@if ! grep -q DEFAULT_USER ${HOME}/.zshrc ; then \
+		echo "Updating DEAFULT_USER in .zshrc ..." ; \
+		echo "export DEFAULT_USER=`whoami`" >> ${HOME}/.zshrc ; \
+	fi
+	@printf "\033[32mzsh installed...\033[0m\n\n"
+
+$(HOME)/.zplug.zsh:
+# Install zplug
+	@rm -rf ~/.zplug
+	@curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh -o install-zplug;
+	@zsh install-zplug
+	@rm install-zplug
+	@ln -fs $(CURDIR)/config/zplug/.zplug.zsh ${HOME}/.zplug.zsh
+	@echo "[ -f ~/.zplug.zsh ] && source ~/.zplug.zsh" >> ${HOME}/.zshrc
+	@chmod -R g-w,o-w ~/.oh-my-zsh/custom/plugins/
+	@printf "\033[32mzplug installed...\033[0m\n\n"
+
+install-robotomono: ${HOME}/RobotoMono.zip
+${HOME}/RobotoMono.zip:
+	@echo "Downloading RobotMono v.2.1.0..."
+	@curl -L https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/RobotoMono.zip --output ${HOME}/RobotoMono.zip
+	@printf "\033[32mrobotomono downloaded to ${HOME}/RobotoMono.zip ...\033[0m\n\n"
+
+bootstrap-ssh: ## Bootstrapping SSH
+	@printf "\033[32mBootstrapping ssh for github...\033[0m\n"
+ifeq ("$(wildcard ${HOME}/.ssh)","")
+	@mkdir $(HOME)/.ssh && chmod 700 ~/.ssh
+	@cp config/ssh/config ~/.ssh/config
+	@touch ${HOME}/.ssh/authorized_keys && chmod 600 ${HOME}/.ssh/authorized_keys
+	@chmod 644 ~/.ssh/config
+	@ssh-keygen -t rsa -b 4096 && printf "\n\n\033[32mPublic key (add to github)\033[0m\n" && cat ~/.ssh/id_rsa.pub
+	@chmod 600 ~/.ssh/id_rsa
+	@ln -fs $(CURDIR)/config/ssh/.ssh-agent $(HOME)/.ssh-agent
+	@printf "\033[32mssh bootstrapped...\033[0m\n\n"
+else
+	@printf "\033[31m${HOME}/.ssh already exists... \033[0m\n"
+endif
+
+bootstrap-vim: ## Installing VIM plugins
+ifeq ("$(wildcard ${HOME}/.vim/autoload/plug.vim)","")
+	@echo "Bootstrapping vim..."
+	@curl -fLo $(HOME)/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+	@ln -fs $(CURDIR)/config/vim/.vimrc $(HOME)/.vimrc
+	@mkdir $(HOME)/.vim/swaps
+	@mkdir $(HOME)/.vim/backups
+	@printf "\033[32mvim bootstrapped...\033[0m\n\n"
+	@printf "\033[33mLaunch vi and run :PlugInstall to install plugins\033[0m\n\n"
+else
+	@printf "\033[31mvim already bootstrapped...\033[0m\n\n"
+endif
+
+bootstrap-min: ## Bootstrap minimum necessary - profile, aliases
+	@echo "Bootstrapping minimum configuration..."
+	ln -fs config/dotfiles/.aliases ${HOME}/.aliases
+	ln -fs config/dotfiles/.profile ${HOME}/.profile
+	@printf "\033[32mBootstrap min complete...\033[0m\n\n"
+
+all: getting-started install-and-bootstrap ## Run full install and bootstrap
+
+## Safe to re-run
+getting-started: backup profile-link install-packages  ## Run backups, link dotfiles, and install essential applications (curl, git, jq, etc)
+	@printf "\033[1;33mBootstrapping system completed\033[0m\n\n"
+install-and-bootstrap: install-apps bootstrap-apps ## Install and bootstrap system
+
+install-apps: install-zsh install-bat install-starship install-robotomono
+bootstrap-apps: bootstrap-ssh bootstrap-vim
 
 # Automatically build a help menu
 help:
@@ -61,4 +189,4 @@ help:
 	| sort \
 	| awk 'BEGIN {FS = ":.*?## "; printf "\033[31m\nHelp Commands\033[0m\n--------------------------------\n"}; {printf "\033[32m%-22s\033[0m %s\n", $$1, $$2}'
 
-.DEFAULT_GOAL := help
+.PHONY: all backup bootstrap-min install-and-bootstrap bootstrap-apps install-packages install-brew install-zsh install-bat profile-link link bootstrap-ssh bootstrap-vim install-robotomono install-starship update_submodules upgrade all bootstrap-robotomono

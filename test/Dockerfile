@@ -16,14 +16,15 @@ RUN apt-get update -y && apt-get install -y \
     jq \
 	sudo \
     software-properties-common \
-    locales
+    locales \
+    make
 
 # Fix issues related to locale
 RUN locale-gen en_US.UTF-8
 
 # add dotuser user
 RUN adduser dotuser --disabled-password --gecos ""                      && \
-    echo "ALL            ALL = (ALL) NOPASSWD: ALL" >> /etc/sudoers && \
+    echo "dotuser ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
     chown -R dotuser:dotuser /home/dotuser
 
 # dotuser user config

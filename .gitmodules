@@ -1,0 +1,9 @@
+[submodule "plugins/dircolors-solarized"]
+	path = plugins/dircolors-solarized
+	url = https://github.com/seebi/dircolors-solarized
+[submodule "plugins/dracula/vim"]
+	path = plugins/dracula/vim
+	url = https://github.com/dracula/vim.git
+[submodule "plugins/powerline"]
+	path = plugins/powerline
+	url = https://github.com/powerline/fonts.git
