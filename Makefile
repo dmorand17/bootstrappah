@@ -24,12 +24,6 @@ $(backup_dir):
 	@echo "Folder $(backup_dir) does not exist"
 	@mkdir $@
 
-bootstrap-min: ## Bootstrap minimum necessary - profile, aliases
-	@echo "Bootstrapping minimum configuration..."
-	ln -fs config/dotfiles/.aliases ${HOME}/.aliases
-	ln -fs config/dotfiles/.profile ${HOME}/.profile
-	@printf "\033[32mBootstrap min complete...\033[0m\n\n"
-
 # Runs init job using order-only prequisite
 # Once job is run once the .bootstrap/init file will be created and init job will no longer run
 # Re-trigger by removing .bootsrap/init
@@ -63,7 +57,7 @@ install-brew: /home/linuxbrew/.linuxbrew/bin/brew
 	@if [ ! `command -v brew` ]; then \
 		curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh | bash ; \
 		printf "\033[32mBrew installed...\033[0m\n" ; \
-		echo 'eval "$$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ${HOME}.profile ; \
+		echo 'eval "$$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ${HOME}/.profile ; \
 		printf "\033[32mBrew configured...\033[0m\n\n" ; \
 	else \
 		printf "\033[31mBrew already installed!\033[0m\n\n" ; \
@@ -173,11 +167,19 @@ else
 	@printf "\033[31mvim already bootstrapped...\033[0m\n\n"
 endif
 
+bootstrap-min: ## Bootstrap minimum necessary - profile, aliases
+	@echo "Bootstrapping minimum configuration..."
+	ln -fs config/dotfiles/.aliases ${HOME}/.aliases
+	ln -fs config/dotfiles/.profile ${HOME}/.profile
+	@printf "\033[32mBootstrap min complete...\033[0m\n\n"
+
 ## Safe to re-run
-install: backup install-packages profile-link install-zsh install-brew install-bat install-starship install-robotomono | bootstrap  ## Bootstrap system
+bootstrap: backup install-packages profile-link | install-apps bootstrap-apps  ## Bootstrap system
 	@printf "\033[1;33mBootstrapping system completed\033[0m\n\n"
 
-bootstrap: bootstrap-ssh bootstrap-vim
+install-apps: install-zsh install-brew install-bat install-starship install-robotomono
+
+bootstrap-apps: bootstrap-ssh bootstrap-vim
 
 # Automatically build a help menu
 help:
@@ -185,4 +187,4 @@ help:
 	| sort \
 	| awk 'BEGIN {FS = ":.*?## "; printf "\033[31m\nHelp Commands\033[0m\n--------------------------------\n"}; {printf "\033[32m%-22s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: backup bootstrap-min install-packages install-brew install-zsh install-bat profile-link link bootstrap-ssh bootstrap-vim install-robotomono install-starship update_submodules upgrade all bootstrap-robotomono
+.PHONY: backup bootstrap-min bootstrap-apps install-packages install-brew install-zsh install-bat profile-link link bootstrap-ssh bootstrap-vim install-robotomono install-starship update_submodules upgrade all bootstrap-robotomono
