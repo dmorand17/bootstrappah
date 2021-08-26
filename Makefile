@@ -57,9 +57,6 @@ endif
 	touch $(BOOTSTRAP_CFG_DIR)/init
 	@printf "\033[32mPackages installed...\033[0m\n\n"
 
-activate-brew:
-	@eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-
 install-brew: /home/linuxbrew/.linuxbrew/bin/brew
 /home/linuxbrew/.linuxbrew/bin/brew: ## Install brew
 # Install brew
@@ -69,13 +66,13 @@ install-brew: /home/linuxbrew/.linuxbrew/bin/brew
 		echo 'eval "$$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ${HOME}.profile ; \
 		printf "\033[32mBrew configured...\033[0m\n\n" ; \
 	else \
-		echo "Brew already installed!" ; \
+		printf "\033[31mBrew already installed!\033[0m\n\n" ; \
 	fi
 
 install-bat: install-brew ## Install bat (cat with wings)
 ifneq ($(UNAME),Darwin)
 	brew install bat
-	printf "\033[32mBrew configured...\033[0m\n\n"
+	printf "\033[32mBat installed...\033[0m\n\n"
 endif
 
 install-starship: install-brew | $(HOME)/.config## Install starship
