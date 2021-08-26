@@ -38,7 +38,7 @@ esac
 # virtualenvwrapper
 export WORKON_HOME=$HOME/.virtualenvs   # Optional
 export PROJECT_HOME=$HOME/development     # Optional
-export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python3
+export VIRTUALENVWRAPPER_PYTHON="$(which python3)"
 export VIRTUALENVWRAPPER_VIRTUALENV=/usr/local/bin/virtualenv
 source /usr/local/bin/virtualenvwrapper.sh
 

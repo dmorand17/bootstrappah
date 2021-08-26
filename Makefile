@@ -51,7 +51,7 @@ $(DOTFILES):
 # Runs init job using order-only prequisite
 # Once job is run once the .bootstrap/init file will be created and init job will no longer run
 # Re-trigger by removing .bootsrap/init
-install-packages: | $(BOOTSTRAP_CFG_DIR)/init bootstrap-zsh ## Initialize linux system (install git, ssh, fzf, etc)
+install-packages: | $(BOOTSTRAP_CFG_DIR)/init bootstrap-zsh install-dircolors ## Initialize linux system (install git, ssh, fzf, etc)
 $(BOOTSTRAP_CFG_DIR)/init: install-brew
 ifeq ($(UNAME),Darwin)
 	sh ./brew.sh
@@ -95,8 +95,7 @@ endif
 
 install-starship: install-brew | $(HOME)/.config## Install starship
 	@if [ -n `which starship` ]; then \
-	echo "Installing starship..." ; \
-#eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv && brew install starship)" ; \
+		echo "Installing starship..." ; \
 		brew install starship ;\
 		cp config/starship/starship.toml ${HOME}/.config ; \
 		echo 'eval "$(starship init zsh)"' >> ~/.zshrc ; \
@@ -123,6 +122,7 @@ $(HOME)/.zshrc:
 		echo "Updating DEAFULT_USER in .zshrc ..." ; \
 		echo "export DEFAULT_USER=`whoami`" >> ${HOME}/.zshrc ; \
 	fi
+	@echo '[[ -f "${HOME}/.profile" ]] && source ${HOME}/.profile' >> ${HOME}/.zshrc
 	@printf "\033[32mzsh installed...\033[0m\n\n"
 
 $(HOME)/.zplug.zsh:
@@ -189,7 +189,7 @@ endif
 
 install-and-bootstrap: install-apps bootstrap-apps ## Install and bootstrap system
 
-install-apps: install-bat install-starship install-robotomono install-dircolors
+install-apps: install-bat install-starship install-robotomono
 	@printf "\033[1;33mInstalling apps completed\033[0m\n\n"
 bootstrap-apps: bootstrap-ssh bootstrap-vim
 	@printf "\033[1;33mBootstrapping completed\033[0m\n\n"
